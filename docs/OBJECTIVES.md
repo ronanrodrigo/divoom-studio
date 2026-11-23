@@ -58,6 +58,8 @@ O painel do Ditoo depende do Divoom Studio aberto e conectado para avançar as t
 - [x] I3 — CoreBluetooth com descoberta explícita, conexão, GATT/perfil DitooPlus, timeouts e logs.
 - [x] I4 — Painel/cidade, editor/animação, alarmes/relógios, biblioteca e diagnóstico no iPhone.
 - [x] I5 — Build/testes iOS e regressão macOS nos comandos do repositório.
-- [ ] I6 — Executar no simulador e, quando disponível, instalar e verificar no iPhone físico.
+- [x] I6 — Executar no simulador e, quando disponível, instalar e verificar no iPhone físico.
 
 Versão iPhone instalada e aberta em aparelho físico com assinaturaAppleDevelopment usandoXcode27.2. Passaram36testesde código e3de interface;1testeBluetooth físico opt-in foi ignorado na suíte automática. RegressãoMac:25testes ebuildRelease/assinaturaad-hoc passaram. Confirmação físicaBLEcom o Ditoo permanece solicitada ao usuário.
+
+- [ ] I7 — Confirmar com o usuário conexão BLE e resultado visual da imagem enviada pelo iPhone.
