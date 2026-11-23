@@ -51,7 +51,23 @@ final class BluetoothDiagnosticUITests: XCTestCase {
         }
         continueAfterFailure = true
         let app = XCUIApplication(bundleIdentifier: "dev.ronanrodrigo.DivoomStudioMobile")
-        app.activate()
+        // This reproduction intentionally starts a fresh session after installing
+        // the fix. Unlike observation, preservation of old in-memory logs is not required.
+        app.launch()
+        guard app.wait(for: .runningForeground, timeout: 12) else {
+            capture("Conexão — app não ficou em primeiro plano", app: app)
+            XCTFail("O iPhone não manteve o Studio em primeiro plano. Não interaja com outros apps durante este diagnóstico.")
+            return
+        }
+        let readyTabBar = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND hittable == true"), object: app.tabBars.firstMatch)
+        guard XCTWaiter.wait(for: [readyTabBar], timeout: 10) == .completed,
+              app.windows.firstMatch.exists,
+              app.windows.firstMatch.frame.minX <= 1,
+              app.windows.firstMatch.frame.width >= app.frame.width * 0.95 else {
+            capture("Conexão — janela em transição ou seletor de apps", app: app)
+            XCTFail("A janela não ocupou a tela; o seletor de apps ou um alerta externo pode estar ativo.")
+            return
+        }
         capture("Conexão — estado inicial", app: app)
         defer { capture("Conexão — estado final", app: app); captureExistingLogs(app: app) }
         let deviceTab = app.tabBars.buttons["Aparelho"]
@@ -73,7 +89,16 @@ final class BluetoothDiagnosticUITests: XCTestCase {
             return
         }
         let scan = app.buttons["Buscar"]
-        guard scan.exists && scan.isHittable else { XCTFail("Botão Buscar indisponível."); return }
+        for _ in 0..<5 {
+            if scan.exists && scan.isHittable { break }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.3))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.75)))
+        }
+        guard scan.exists && scan.isHittable else {
+            capture("Conexão — Buscar indisponível mesmo após rolar ao topo", app: app)
+            XCTFail("Botão Buscar indisponível.")
+            return
+        }
         scan.tap()
         let candidates = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "mobile.bleCandidate."))
         guard candidates.firstMatch.waitForExistence(timeout: 18) else {
