@@ -2,15 +2,22 @@ import SwiftUI
 
 @main
 struct DivoomMobileApp: App {
-    @State private var model = MobileAppModel()
+    @State private var model: MobileAppModel
     @Environment(\.scenePhase) private var scenePhase
+    init() {
+        let initialModel = MobileAppModel()
+        _model = State(initialValue: initialModel)
+        // Recreate the opted-in manager early, including a Bluetooth background launch.
+        initialModel.bluetooth.startAutomaticConnection()
+    }
+
     var body: some Scene {
         WindowGroup {
             MobileRootView(model: model)
                 .tint(.cyan)
                 .onChange(of: scenePhase) { _, phase in
                     switch phase {
-                    case .active: break
+                    case .active: model.bluetooth.startAutomaticConnection()
                     case .inactive: model.becameInactive()
                     case .background: model.enteredBackground()
                     @unknown default: model.enteredBackground()

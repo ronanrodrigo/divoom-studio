@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 @preconcurrency import CoreBluetooth
 
 struct MobileDivoomDevice: Identifiable, Equatable, Sendable {
@@ -33,7 +34,27 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     private(set) var status = "Bluetooth ainda não iniciado"
     private(set) var logs: [MobileBluetoothLogEntry] = []
     private(set) var profileDescription = "Perfil BLE ainda não identificado"
-    var profileSelection: BLEProtocolSelection = .diagnostic
+    var profileSelection: BLEProtocolSelection = .diagnostic {
+        didSet { persistCurrentProfileIfRemembered() }
+    }
+    var automaticConnectionEnabled = true {
+        didSet {
+            persistAutomaticPreferences()
+            if automaticConnectionEnabled {
+                reconnectBackoff.reset()
+                startAutomaticConnection()
+            } else {
+                automaticWanted = false
+                cancelAutomaticRetry()
+                if connectionOrigin == .automatic && !isConnected {
+                    stopScan()
+                    resetConnection(cancelPeripheral: true)
+                }
+            }
+        }
+    }
+    private(set) var rememberedDevice: RememberedBLEDevice?
+    var rememberedDeviceName: String? { rememberedDevice?.name }
     private(set) var notificationsReady = false
     var canSend: Bool { isConnected && profileSelection == .ditooPlusRCSP && profile != nil && notificationsReady && writeCharacteristic != nil }
     var compatibilityStatus: String {
@@ -42,6 +63,17 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         return "BLE RCSP fundamentado em teste público Ditoo-Plus; este aparelho ainda requer validação física."
     }
 
+    private enum ConnectionOrigin { case manual, automatic }
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private var connectionOrigin: ConnectionOrigin?
+    @ObservationIgnored private var automaticWanted = false
+    @ObservationIgnored private var automaticTargetScan = false
+    @ObservationIgnored private var automaticRetry: Task<Void, Never>?
+    @ObservationIgnored private var automaticRetryEpoch = UUID()
+    @ObservationIgnored private var reconnectBackoff = BLEReconnectBackoff()
+    @ObservationIgnored private var restoredPeripherals: [UUID: CBPeripheral] = [:]
+    @ObservationIgnored private var restoredToCancel: [CBPeripheral] = []
+    @ObservationIgnored private var centralNeedsRenewal = false
     @ObservationIgnored private var central: CBCentralManager?
     @ObservationIgnored private var peripherals: [UUID: CBPeripheral] = [:]
     @ObservationIgnored private var peripheral: CBPeripheral?
@@ -85,10 +117,19 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         }
     }
 
-    // Deliberately no manager, scan, connect, restore or commands in init.
-    override init() { super.init() }
+    // Constructing the model only reads local preferences. The app's lifecycle explicitly
+    // calls startAutomaticConnection(); unit tests can inject an isolated defaults suite.
+    override convenience init() { self.init(defaults: .standard) }
+    init(defaults: UserDefaults) {
+        self.defaults = defaults
+        let preferences = BLEAutomaticPreferences.load(from: defaults)
+        automaticConnectionEnabled = preferences.enabled
+        rememberedDevice = preferences.device
+        super.init()
+    }
 
     isolated deinit {
+        automaticRetry?.cancel()
         scanTask?.cancel()
         connectionTimeout?.cancel()
         sendTask?.cancel()
@@ -106,14 +147,131 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         central?.delegate = nil
     }
 
+    /// Called at launch and on foreground entry. Only the locally remembered successful
+    /// target is eligible; this never sends display, alarm, brightness or media commands.
+    func startAutomaticConnection() {
+        guard automaticConnectionEnabled, rememberedDevice != nil else { return }
+        automaticWanted = true
+        guard !isConnected, !isBusy, !isDisconnecting, !isScanning, automaticRetry == nil else { return }
+        attemptAutomaticConnection()
+    }
+
+    func forgetDevice() {
+        automaticConnectionEnabled = false
+        rememberedDevice = nil
+        persistAutomaticPreferences()
+        restoredPeripherals = [:]
+        stopScan()
+        resetConnection(cancelPeripheral: true)
+        status = "Aparelho esquecido. Busque e conecte um aparelho para salvá-lo novamente."
+    }
+
+    private func persistAutomaticPreferences() {
+        BLEAutomaticPreferences(enabled: automaticConnectionEnabled, device: rememberedDevice).save(to: defaults)
+    }
+
+    private func persistCurrentProfileIfRemembered() {
+        guard isConnected, let peripheral, rememberedDevice?.id == peripheral.identifier,
+              let previous = rememberedDevice else { return }
+        rememberedDevice = RememberedBLEDevice(id: previous.id, name: previous.name, selection: profileSelection)
+        persistAutomaticPreferences()
+    }
+
+    private func rememberSuccessfulConnection() {
+        guard isConnected, notificationsReady, profile != nil, writeCharacteristic != nil,
+              let peripheral else { return }
+        let name = devices.first(where: { $0.id == peripheral.identifier })?.name
+            ?? peripheral.name ?? rememberedDevice?.name ?? "Ditoo"
+        rememberedDevice = RememberedBLEDevice(id: peripheral.identifier, name: name, selection: profileSelection)
+        persistAutomaticPreferences()
+        reconnectBackoff.reset()
+        cancelAutomaticRetry()
+        automaticWanted = automaticConnectionEnabled
+    }
+
+    private func ensureCentralManager() {
+        guard central == nil else { return }
+        // The caller is either an explicit scan or an authorized saved-target lifecycle event.
+        central = CBCentralManager(delegate: self, queue: .main, options: [
+            CBCentralManagerOptionShowPowerAlertKey: false,
+            CBCentralManagerOptionRestoreIdentifierKey: "dev.ronanrodrigo.DivoomStudioMobile.central"
+        ])
+    }
+
+    private func attemptAutomaticConnection() {
+        guard automaticWanted, automaticConnectionEnabled, let target = rememberedDevice,
+              !isConnected, !isBusy, !isDisconnecting, !isScanning, sessionGate.mayConnect else { return }
+        ensureCentralManager()
+        guard let central, central.state == .poweredOn else {
+            status = "Aguardando Bluetooth para reconectar ao aparelho salvo…"
+            return
+        }
+        let restored = restoredPeripherals.removeValue(forKey: target.id)
+        let candidate = restored ?? central.retrievePeripherals(withIdentifiers: [target.id]).first
+        if let candidate {
+            profileSelection = target.selection
+            upsertCandidate(candidate, name: target.name, rssi: 127, systemConnected: candidate.state == .connected,
+                            source: restored == nil ? "aparelho salvo neste iPhone" : "restauração do CoreBluetooth")
+            selectedDeviceID = target.id
+            beginConnection(candidate, origin: .automatic, restored: restored != nil)
+        } else if UIApplication.shared.applicationState == .active {
+            automaticTargetScan = true
+            wantsScan = true
+            beginScanIfReady()
+        } else {
+            log("AUTO", "Identificador salvo indisponível no cache; uma nova busca depende do próximo primeiro plano.")
+        }
+    }
+
+    private func cancelAutomaticRetry() {
+        automaticRetryEpoch = UUID()
+        automaticRetry?.cancel()
+        automaticRetry = nil
+    }
+
+    private func scheduleAutomaticRetry(immediate: Bool = false) {
+        guard automaticWanted, automaticConnectionEnabled, rememberedDevice != nil,
+              !isConnected, !isBusy, !isDisconnecting, automaticRetry == nil else { return }
+        if immediate {
+            // Retire the old delegate callback before constructing another manager with
+            // the same restoration identifier. This is an event handoff, not a background timer.
+            let epoch = automaticRetryEpoch
+            automaticRetry = Task { [weak self] in
+                await Task.yield()
+                guard let self, !Task.isCancelled, self.automaticRetryEpoch == epoch else { return }
+                self.automaticRetry = nil
+                self.attemptAutomaticConnection()
+            }
+            return
+        }
+        // A pending CoreBluetooth connect may remain while suspended. Retry timers are
+        // foreground work; no claim is made that arbitrary timers run in the background.
+        guard UIApplication.shared.applicationState == .active else {
+            log("AUTO", "Nova tentativa após erro aguarda o app voltar ao primeiro plano.")
+            return
+        }
+        let delay = reconnectBackoff.nextDelay()
+        let epoch = automaticRetryEpoch
+        status = "Reconexão em \(Int(delay)) s…"
+        log("AUTO", "Conexão falhou; nova tentativa em \(Int(delay)) s, sem comandos de controle.")
+        automaticRetry = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+            guard let self, self.automaticRetryEpoch == epoch else { return }
+            self.automaticRetry = nil
+            guard UIApplication.shared.applicationState == .active else { return }
+            self.attemptAutomaticConnection()
+        }
+    }
+
     func scan() {
         guard !isBusy, !isConnected, !isScanning, !isDisconnecting else { return }
+        automaticWanted = false
+        automaticTargetScan = false
+        cancelAutomaticRetry()
         wantsScan = true
         log("BUSCA", "Busca solicitada pelo usuário; verificar aparelhos conectados ao iOS e anúncios compatíveis.")
-        if central == nil {
-            central = CBCentralManager(delegate: self, queue: .main,
-                                       options: [CBCentralManagerOptionShowPowerAlertKey: false])
-        } else { beginScanIfReady() }
+        ensureCentralManager()
+        beginScanIfReady()
     }
 
     private func beginScanIfReady() {
@@ -136,19 +294,29 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
             upsertCandidate(candidate, name: BLEProfile.discoveryName(localName: nil, peripheralName: candidate.name),
                             rssi: 127, systemConnected: true, source: "conexão existente no iOS")
         }
+        if automaticTargetScan, let target = rememberedDevice,
+           let candidate = peripherals[target.id], automaticConnectionEnabled {
+            profileSelection = target.selection
+            selectedDeviceID = target.id
+            beginConnection(candidate, origin: .automatic)
+            return
+        }
         log("BUSCA", "Recuperados \(connected.count) aparelho(s) com serviço compatível já conectado(s) ao iOS; iniciando anúncios próximos.")
         // No UUID filter: older Ditoo-light advertisements may omit a service UUID.
         central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
         scanTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(15)) } catch { return }
             guard let self, self.scanGeneration == search else { return }
+            let automaticSearch = self.automaticTargetScan
             self.stopScan()
+            if automaticSearch { self.scheduleAutomaticRetry() }
         }
     }
 
     func stopScan() {
         let wasScanning = isScanning
         wantsScan = false
+        automaticTargetScan = false
         scanGeneration = UUID()
         scanStartedAt = nil
         scanTask?.cancel()
@@ -186,9 +354,16 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
             status = "Busque e selecione um aparelho BLE primeiro."
             return
         }
+        cancelAutomaticRetry()
+        beginConnection(selected, origin: .manual)
+    }
+
+    private func beginConnection(_ selected: CBPeripheral, origin: ConnectionOrigin, restored: Bool = false) {
+        guard let central, central.state == .poweredOn, sessionGate.mayConnect, !isDisconnecting else { return }
         stopScan()
         resetConnection(cancelPeripheral: true)
         guard let attempt = sessionGate.begin(deviceID: selected.identifier) else { return }
+        connectionOrigin = origin
         peripheral = selected
         let proxy = EpochPeripheralDelegate(epoch: attempt) { [weak self] epoch, id, event in
             Task { @MainActor [weak self] in self?.receivePeripheralEvent(event, epoch: epoch, deviceID: id) }
@@ -196,18 +371,31 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         peripheralDelegate = proxy
         selected.delegate = proxy
         isBusy = true
-        status = "Conectando e identificando serviços BLE…"
-        central.connect(selected, options: nil)
+        status = origin == .automatic ? "Reconectando ao aparelho salvo; aguardando disponibilidade…" : "Conectando e identificando serviços BLE…"
+        log(origin == .automatic ? "AUTO" : "INFO", status)
+        if restored && selected.state == .connected { connected(selected.identifier) }
+        else if !(restored && selected.state == .connecting) { central.connect(selected, options: nil) }
+        if origin == .manual { installConnectionTimeout(attempt: attempt) }
+        // Automatic known-target connect stays pending in CoreBluetooth without a 15 s
+        // cancellation loop. Only actual failure callbacks schedule another attempt.
+    }
+
+    private func installConnectionTimeout(attempt: UUID) {
+        connectionTimeout?.cancel()
         connectionTimeout = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(15)) } catch { return }
             guard let self, self.generation == attempt, self.isBusy else { return }
-            self.log("ERRO", "Conexão/descoberta expirou após 15 segundos; sem repetição.")
+            self.log("ERRO", "Conexão ou descoberta GATT expirou após 15 segundos.")
             self.resetConnection(cancelPeripheral: true)
             self.status = "A conexão ou descoberta BLE expirou."
+            if !self.isDisconnecting { self.scheduleAutomaticRetry() }
         }
     }
 
     func disconnect() {
+        automaticConnectionEnabled = false
+        automaticWanted = false
+        cancelAutomaticRetry()
         stopScan()
         resetConnection(cancelPeripheral: true)
         status = isDisconnecting ? "Aguardando o Bluetooth concluir a desconexão…" : "Desconectado"
@@ -250,6 +438,7 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
             if cancelPeripheral { central?.cancelPeripheralConnection(peripheral) }
         }
         peripheral = nil
+        connectionOrigin = nil
         peripheralDelegate = nil
         profile = nil
         writeCharacteristic = nil
@@ -423,6 +612,7 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     private func connected(_ id: UUID) {
         guard let peripheral, peripheral.identifier == id else { return }
         log("INFO", "Conexão GATT estabelecida; descobrindo serviços, sem comandos automáticos.")
+        installConnectionTimeout(attempt: generation)
         peripheral.discoverServices(nil)
     }
 
@@ -460,18 +650,30 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     }
 
     private func finishDiscovery() {
+        if connectionOrigin == .automatic {
+            guard profile != nil, writeCharacteristic != nil, notifyCharacteristic != nil else {
+                failDiscovery("O aparelho salvo não apresentou o perfil BLE esperado.")
+                return
+            }
+            guard notificationsReady else {
+                status = "Aguardando ativação das notificações BLE…"
+                return // retain busy state and the 15 s GATT watchdog
+            }
+        }
         connectionTimeout?.cancel(); connectionTimeout = nil
         isConnected = true
         isBusy = false
         if profile == nil { profileDescription = "Perfil desconhecido; características registradas no diagnóstico" }
         status = canSend ? "Conectado; aguardando ação" : "Conectado para diagnóstico. Comandos bloqueados até confirmar o protocolo deste Ditoo."
         log("INFO", status)
+        rememberSuccessfulConnection()
     }
 
     private func failDiscovery(_ message: String) {
         log("ERRO", message)
         resetConnection(cancelPeripheral: true)
         status = "Falha ao descobrir perfil BLE: \(message)"
+        if !isDisconnecting { scheduleAutomaticRetry() }
     }
 
     private static func stateDescription(_ state: CBManagerState) -> String {
@@ -528,25 +730,34 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         case .notification(let uuid, let notifying, let error):
             guard notifyCharacteristic?.uuid.uuidString == uuid else { return }
             notificationsReady = error == nil && notifying
+            if connectionOrigin == .automatic, !notificationsReady {
+                failDiscovery(error ?? "O aparelho não ativou as notificações BLE.")
+                return
+            }
+            if notificationsReady && pendingServices.isEmpty && !isConnected { finishDiscovery() }
             if isConnected { status = canSend ? "BLE RCSP pronto; envio somente por ação explícita." : "Conectado para diagnóstico; escolha o protocolo para testar." }
+            if notificationsReady { rememberSuccessfulConnection() }
             log(error == nil ? "GATT" : "ERRO", "Notificações \(uuid): \(notifying); \(error ?? "sem erro")")
         }
     }
 
-    private func terminalConnectionEvent(deviceID: UUID, message: String, managerID: ObjectIdentifier) {
+    private func terminalConnectionEvent(deviceID: UUID, message: String, managerID: ObjectIdentifier, linkDropped: Bool) {
         guard let central, ObjectIdentifier(central) == managerID else { return }
         if sessionGate.finishCancellation(deviceID: deviceID) {
             isDisconnecting = false
             discardCentralManager()
             status = "Desconectado. Busque o aparelho novamente para iniciar uma nova sessão."
             log("INFO", status)
+            scheduleAutomaticRetry()
             return
         }
         guard peripheral?.identifier == deviceID else { return }
+        let previouslyReady = isConnected
         resetConnection(cancelPeripheral: false)
         discardCentralManager()
         status = message
         log("INFO", message)
+        scheduleAutomaticRetry(immediate: linkDropped && previouslyReady)
     }
 
     private func discardCentralManager() {
@@ -564,6 +775,34 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         selectedDeviceID = nil
     }
 
+    private func cancelUnwantedRestoredConnections() {
+        guard let central, central.state == .poweredOn else { return }
+        for candidate in restoredToCancel { central.cancelPeripheralConnection(candidate) }
+        restoredToCancel = []
+    }
+
+    nonisolated func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
+        let managerReference = MainQueueCBReference(value: central)
+        let candidates = (dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] ?? []).map { MainQueueCBReference(value: $0) }
+        Task { @MainActor [weak self] in
+            guard let self, let current = self.central, ObjectIdentifier(current) == ObjectIdentifier(managerReference.value) else { return }
+            let preferences = BLEAutomaticPreferences(enabled: self.automaticConnectionEnabled, device: self.rememberedDevice)
+            for candidate in candidates {
+                if preferences.allowsRestoration(of: candidate.value.identifier) {
+                    self.restoredPeripherals[candidate.value.identifier] = candidate.value
+                    self.automaticWanted = true
+                    self.log("AUTO", "CoreBluetooth entregou a sessão do aparelho salvo para restauração; nenhum comando de controle será reenviado.")
+                } else {
+                    self.restoredToCancel.append(candidate.value)
+                }
+            }
+            if current.state == .poweredOn {
+                self.cancelUnwantedRestoredConnections()
+                self.attemptAutomaticConnection()
+            }
+        }
+    }
+
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         let rawState = central.state.rawValue
         let managerReference = MainQueueCBReference(value: central)
@@ -571,15 +810,25 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
             guard let self, let current = self.central, ObjectIdentifier(current) == ObjectIdentifier(managerReference.value),
                   let state = CBManagerState(rawValue: rawState) else { return }
             self.status = Self.stateDescription(state)
-            if state == .poweredOn { self.beginScanIfReady() }
-            else if state != .unknown {
-                // Resetting invalidates every service, characteristic and in-flight write too.
+            if state == .poweredOn {
+                self.cancelUnwantedRestoredConnections()
+                if self.centralNeedsRenewal {
+                    self.discardCentralManager()
+                    self.centralNeedsRenewal = false
+                    if self.automaticWanted && self.automaticConnectionEnabled && self.rememberedDevice != nil {
+                        self.scheduleAutomaticRetry(immediate: true)
+                    }
+                    return
+                }
+                if self.wantsScan { self.beginScanIfReady() }
+                else { self.attemptAutomaticConnection() }
+            } else if state != .unknown {
+                self.cancelAutomaticRetry()
                 self.stopScan()
                 self.resetConnection(cancelPeripheral: false)
-                current.delegate = nil
-                self.central = nil
-                self.peripherals = [:]
-                self.devices = []
+                self.restoredPeripherals = [:]
+                self.restoredToCancel = []
+                self.centralNeedsRenewal = true
                 self.status = Self.stateDescription(state)
             }
         }
@@ -593,15 +842,22 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
             + (advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? [])
         let services = Set(advertised.map { $0.uuidString })
         // Unrelated advertisements are discarded before retaining or logging the peripheral.
-        guard BLEProfile.isDiscoveryCandidate(localName: localName, peripheralName: peripheralName,
-                                              advertisedServiceUUIDs: services) else { return }
+        let plausible = BLEProfile.isDiscoveryCandidate(localName: localName, peripheralName: peripheralName,
+                                                         advertisedServiceUUIDs: services)
         let name = BLEProfile.discoveryName(localName: localName, peripheralName: peripheralName)
         let rssi = RSSI.intValue
         let reference = MainQueueCBReference(value: peripheral)
         Task { @MainActor [weak self] in
             guard let self, let current = self.central, ObjectIdentifier(current) == ObjectIdentifier(managerReference.value),
                   self.isScanning, let startedAt = self.scanStartedAt, observedAt >= startedAt else { return }
+            let isSavedTarget = self.automaticTargetScan && self.rememberedDevice?.id == reference.value.identifier
+            guard plausible || isSavedTarget else { return }
             self.upsertCandidate(reference.value, name: name, rssi: rssi, systemConnected: false, source: "anúncio BLE")
+            if isSavedTarget, self.automaticWanted, self.automaticConnectionEnabled {
+                self.profileSelection = self.rememberedDevice?.selection ?? .diagnostic
+                self.selectedDeviceID = reference.value.identifier
+                self.beginConnection(reference.value, origin: .automatic)
+            }
         }
     }
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -620,13 +876,13 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
         let id = peripheral.identifier
         let managerReference = MainQueueCBReference(value: central)
         let message = error?.localizedDescription ?? "Conexão recusada."
-        Task { @MainActor [weak self] in self?.terminalConnectionEvent(deviceID: id, message: message, managerID: ObjectIdentifier(managerReference.value)) }
+        Task { @MainActor [weak self] in self?.terminalConnectionEvent(deviceID: id, message: message, managerID: ObjectIdentifier(managerReference.value), linkDropped: false) }
     }
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: (any Error)?) {
         let id = peripheral.identifier
         let managerReference = MainQueueCBReference(value: central)
         let message = error?.localizedDescription ?? "Conexão encerrada."
-        Task { @MainActor [weak self] in self?.terminalConnectionEvent(deviceID: id, message: message, managerID: ObjectIdentifier(managerReference.value)) }
+        Task { @MainActor [weak self] in self?.terminalConnectionEvent(deviceID: id, message: message, managerID: ObjectIdentifier(managerReference.value), linkDropped: true) }
     }
 }
 

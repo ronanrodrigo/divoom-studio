@@ -86,6 +86,7 @@ final class BluetoothDiagnosticUITests: XCTestCase {
         }
         if app.buttons["Desconectar"].exists {
             capture("Conexão — aparelho já conectado em diagnóstico", app: app)
+            try verifyAutomaticReconnectIfEnabled(app: app)
             return
         }
         let scan = app.buttons["Buscar"]
@@ -124,9 +125,54 @@ final class BluetoothDiagnosticUITests: XCTestCase {
         let connected = disconnectedAction.waitForExistence(timeout: 25)
         capture("Conexão — resultado sem comandos", app: app)
         XCTAssertTrue(connected, "A conexão BLE não concluiu; consulte status e registro anexados.")
+        if connected { try verifyAutomaticReconnectIfEnabled(app: app) }
         // Deliberately leave the diagnostic connection as observed. Do not invoke
         // controls, dashboard, pixel upload, animation, time sync, or alarms.
         #endif
+    }
+
+    private func verifyAutomaticReconnectIfEnabled(app: XCUIApplication) throws {
+        guard enabled("DIVOOM_BLE_AUTOMATIC_DIAGNOSTIC") else { return }
+        let automatic = app.switches["mobile.automaticConnection"]
+        for _ in 0..<6 {
+            if automatic.exists && automatic.isHittable { break }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.8))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.3)))
+        }
+        guard automatic.exists else {
+            capture("Automática — opção não encontrada", app: app)
+            XCTFail("Reconexão automática não está disponível na interface instalada.")
+            return
+        }
+        XCTAssertEqual(automatic.value as? String, "1", "A reconexão automática deve estar ativada antes deste diagnóstico opt-in.")
+        guard automatic.value as? String == "1" else { return }
+        capture("Automática — configuração e aparelho salvo antes de reiniciar", app: app)
+        captureExistingLogs(app: app)
+        app.terminate()
+        app.launch()
+        guard app.wait(for: .runningForeground, timeout: 12) else {
+            capture("Automática — app não ficou em primeiro plano", app: app)
+            XCTFail("Não foi possível observar a nova sessão em primeiro plano.")
+            return
+        }
+        let deviceTab = app.tabBars.buttons["Aparelho"]
+        guard deviceTab.waitForExistence(timeout: 10) else {
+            capture("Automática — aba indisponível", app: app)
+            XCTFail("A aba Aparelho não ficou acessível após reiniciar.")
+            return
+        }
+        deviceTab.tap()
+        capture("Automática — nova sessão sem tocar Buscar ou Conectar", app: app)
+        // From this point no scan/connect button is touched. The remembered
+        // peripheral and profile must be recovered by the app's own lifecycle.
+        let connected = app.buttons["Desconectar"].waitForExistence(timeout: 30)
+        capture("Automática — resultado da reconexão sem comandos", app: app)
+        XCTAssertTrue(connected, "O Ditoo não reconectou automaticamente na nova sessão; consulte os anexos.")
+        let profile = app.descendants(matching: .any)["mobile.protocolSelection"].firstMatch
+        if profile.exists {
+            XCTAssertTrue((profile.label + " " + String(describing: profile.value ?? "")).contains("Somente diagnóstico"), "O teste não deve mudar o protocolo salvo.")
+        }
+        captureExistingLogs(app: app)
     }
 
     private func enabled(_ key: String) -> Bool {

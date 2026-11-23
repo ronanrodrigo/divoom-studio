@@ -71,7 +71,10 @@ final class MobileUITests: XCTestCase {
         app.launch()
         app.tabBars.buttons["Aparelho"].tap()
         XCTAssertTrue(app.navigationBars["Aparelho"].waitForExistence(timeout: 5))
-        screenshot("Aparelho sem conexão automática", app: app)
+        screenshot("Aparelho antes de salvar um Ditoo", app: app)
+        let automatic = app.switches["mobile.automaticConnection"]
+        scrollTo(automatic, app: app)
+        XCTAssertTrue(automatic.isHittable, "A preferência de reconexão automática deve estar acessível.")
         let alarm = app.staticTexts["Alarme"]
         scrollTo(alarm, app: app)
         alarm.tap()

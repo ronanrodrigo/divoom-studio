@@ -31,6 +31,25 @@ struct MobileDeviceView: View {
                 else { Button("Conectar", action: model.bluetooth.connect).disabled(model.bluetooth.selectedDeviceID == nil || model.bluetooth.isBusy) }
                 Text("A conexão real exige um iPhone físico e um Ditoo com canal BLE compatível. O simulador permite editar e explorar a interface, mas não comprova Bluetooth.").font(.caption).foregroundStyle(.secondary)
             }
+            Section("Conexão automática") {
+                Toggle("Reconectar automaticamente", isOn: Binding(
+                    get: { model.bluetooth.automaticConnectionEnabled },
+                    set: { model.bluetooth.automaticConnectionEnabled = $0 }
+                ))
+                .accessibilityIdentifier("mobile.automaticConnection")
+                if let name = model.bluetooth.rememberedDeviceName {
+                    LabeledContent("Aparelho salvo", value: name)
+                    Button("Esquecer aparelho", role: .destructive) {
+                        model.stopCasting()
+                        model.bluetooth.forgetDevice()
+                    }
+                } else {
+                    Text("Conecte ao Ditoo uma vez para salvá-lo. Nas próximas aberturas, a conexão será automática.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Text("A reconexão não inicia a transmissão do painel. Se encerrar o app pelo seletor de apps, abra-o novamente para retomar a conexão.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Controles") {
                 NavigationLink("Relógio, brilho e modos") { MobileControlsView(model: model) }
                 NavigationLink("Alarme") { MobileAlarmView(model: model) }

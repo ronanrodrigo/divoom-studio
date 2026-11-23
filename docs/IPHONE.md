@@ -44,6 +44,14 @@ Na aba Aparelho: Buscar, escolha o DitooLight, selecione o perfil DitooPlus e Co
 
 A transferência de animaçãoBLEusa0x8B com quadros paletizados. Ela não usa o conteúdo LCD/Zstandard do MiniToo. Sem solicitação de dados do Ditoo, não são enviados blocos da animação.
 
+## Conexão automática
+
+Após a primeira conexão com perfil validado, o app lembra localmente o Ditoo e o protocolo escolhido. A opção **Reconectar automaticamente** fica em Aparelho e vem ativada. Abrir o app ou retornar ao primeiro plano retoma a conexão com esse mesmo aparelho. A reconexão não envia imagens, hora, alarmes ou configurações.
+
+**Desconectar** desativa a reconexão automática; reative a opção para voltar a usá-la. **Esquecer aparelho** remove o alvo salvo. Nesta atualização, é necessário conectar uma vez para criar o primeiro registro persistido; o build anterior não salvava esse vínculo.
+
+O sistema pode manter pedidos de conexão pendentes e restaurar sessões elegíveis em segundo plano. Se encerrar o app pelo seletor, abra-o novamente para retomar. Isso não garante execução permanente do painel ou atualização de clima fora do primeiro plano. [Limites Apple TN3115](https://developer.apple.com/documentation/technotes/tn3115-bluetooth-state-restoration-app-relaunch-rules).
+
 ## Segundo plano
 
 A saída do primeiro plano pausa a transmissão e a prévia. O app não retoma transmissões sozinho. A permissão bluetooth-central permite eventosBLEem segundo plano, mas não garante um relógio/timer de envio contínuo quando o iOS suspende o processo. A animação transferida pode ser reproduzida pelo firmware, porém quadros pré-renderizados não atualizam hora ou clima sozinhos.

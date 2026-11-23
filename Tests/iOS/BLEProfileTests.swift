@@ -148,8 +148,11 @@ final class BLEProfileTests: XCTestCase {
     }
 
     @MainActor
-    func testControllerStartsInDiagnosticModeWithoutScanning() {
-        let controller = MobileBluetoothController()
+    func testControllerStartsInDiagnosticModeWithoutScanning() throws {
+        let suiteName = "DivoomStudio.BLETests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let controller = MobileBluetoothController(defaults: defaults)
         XCTAssertFalse(controller.isScanning)
         XCTAssertFalse(controller.isConnected)
         XCTAssertFalse(controller.canSend)
