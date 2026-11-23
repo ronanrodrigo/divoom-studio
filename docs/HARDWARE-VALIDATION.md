@@ -45,3 +45,9 @@ Isso valida conexão, escrita assíncrona, parser de resposta e envio visual de 
 Xcode27, Swift6, Debug e concorrência completa: 13 testes, zero falhas. Vetores de protocolo, checksum/reassembly, paletas1/2/256cores, limites de animação, alarmes/relógio; PNGRGB/orientação, recorte central, EXIF6, GIF timing e JSON inválido.
 
 Separadamente, o codec foi comparado byte a byte com os métodos reais do hass-divoom para paletas1,2,3,5,16,256cores; correspondência integral.
+
+## iPhone — investigação de descoberta, builds 4 e 5
+
+O usuário confirmou que o app oficial conecta, mas o Ditoo não aparece na busca do Divoom Studio. Corrigida a consulta de periféricos já conectados ao iOS e o filtro por serviço anunciado/nome. Build 4 instalado no iPhone; o teste físico de busca em modo diagnóstico não encontrou candidatos e não iniciou conexão nem enviou comandos. Os anexos revelaram que o toque em Buscar também executava Parar busca: os dois botões usavam o estilo automático na mesma linha de List. O registro chegou a recuperar um Ditoo conectado ao iOS quando ambas as ações foram chamadas novamente. Build 5 aplica estilo borderless para separar as ações; instalado, com repetição do teste físico pendente de desbloquear o iPhone. Não há confirmação de conexão GATT ou envio BLE neste ponto.
+
+Separadamente, passaram 39 testes unitários iOS, 3 testes de interface no simulador e 25 testes macOS. O build Release macOS e a verificação de assinatura ad-hoc passaram. Testes opt-in de hardware ficam fora do resultado automatizado padrão.

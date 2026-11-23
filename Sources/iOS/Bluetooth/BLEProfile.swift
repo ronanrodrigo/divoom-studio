@@ -33,6 +33,24 @@ struct BLEProfile: Equatable, Sendable {
         return candidate
     }
 
+    /// Discovery is a candidate policy, not permission to write or proof of the device model.
+    /// Accept the known UART service even when the user renamed the device or its local name is absent.
+    static func isDiscoveryCandidate(localName: String?, peripheralName: String?, advertisedServiceUUIDs: Set<String>) -> Bool {
+        let services = Set(advertisedServiceUUIDs.map { $0.uppercased() })
+        if services.contains(issCSerial.serviceUUID) { return true }
+        let prefixes = ["divoom", "ditoo", "timebox", "pixoo", "tivoo", "backpack"]
+        return [localName, peripheralName].compactMap { $0 }.contains { name in
+            prefixes.contains { name.localizedCaseInsensitiveContains($0) }
+        }
+    }
+
+    static func discoveryName(localName: String?, peripheralName: String?) -> String {
+        for value in [localName, peripheralName] {
+            if let name = value?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty { return name }
+        }
+        return "BLE com serviço compatível (sem nome)"
+    }
+
     /// The shared Classic encoder uses a 1-bit all-zero index plane for a single color.
     /// The Plus BLE reference's captured format uses zero bits; adapt only that exact layout.
     static func prepareCommandPayload(_ payload: Data) -> Data {

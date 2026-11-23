@@ -6,6 +6,8 @@ struct MobileDivoomDevice: Identifiable, Equatable, Sendable {
     let id: UUID
     let name: String
     let rssi: Int
+    var isConnectedToSystem = false
+    var signalDescription: String { isConnectedToSystem ? "Já conectado ao iOS" : (rssi == 127 ? "Sinal indisponível" : "\(rssi) dBm") }
 }
 
 struct MobileBluetoothLogEntry: Identifiable, Equatable, Sendable {
@@ -51,6 +53,8 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     @ObservationIgnored private var peripheralDelegate: EpochPeripheralDelegate?
     private var generation: UUID { sessionGate.epoch }
     @ObservationIgnored private var wantsScan = false
+    @ObservationIgnored private var scanGeneration = UUID()
+    @ObservationIgnored private var scanStartedAt: ContinuousClock.Instant?
     @ObservationIgnored private var scanTask: Task<Void, Never>?
     @ObservationIgnored private var connectionTimeout: Task<Void, Never>?
     @ObservationIgnored private var sendTask: Task<Void, Never>?
@@ -103,8 +107,9 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     }
 
     func scan() {
-        guard !isBusy, !isConnected else { return }
+        guard !isBusy, !isConnected, !isScanning, !isDisconnecting else { return }
         wantsScan = true
+        log("BUSCA", "Busca solicitada pelo usuário; verificar aparelhos conectados ao iOS e anúncios compatíveis.")
         if central == nil {
             central = CBCentralManager(delegate: self, queue: .main,
                                        options: [CBCentralManagerOptionShowPowerAlertKey: false])
@@ -112,29 +117,63 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     }
 
     private func beginScanIfReady() {
-        guard wantsScan, let central else { return }
+        guard wantsScan, !isScanning, let central else { return }
         guard central.state == .poweredOn else { status = Self.stateDescription(central.state); return }
         scanTask?.cancel()
         devices = []
         selectedDeviceID = nil
         peripherals = [:]
         isScanning = true
+        scanGeneration = UUID()
+        let search = scanGeneration
+        scanStartedAt = .now
         status = "Buscando aparelhos Divoom próximos…"
+        // Apple: system-connected peripherals (including another app's connection) may no
+        // longer advertise. Retrieve them by the known service, then let the user connect locally.
+        // https://developer.apple.com/documentation/corebluetooth/cbcentralmanager/retrieveconnectedperipherals(withservices:)
+        let connected = central.retrieveConnectedPeripherals(withServices: [CBUUID(string: BLEProfile.issCSerial.serviceUUID)])
+        for candidate in connected {
+            upsertCandidate(candidate, name: BLEProfile.discoveryName(localName: nil, peripheralName: candidate.name),
+                            rssi: 127, systemConnected: true, source: "conexão existente no iOS")
+        }
+        log("BUSCA", "Recuperados \(connected.count) aparelho(s) com serviço compatível já conectado(s) ao iOS; iniciando anúncios próximos.")
         // No UUID filter: older Ditoo-light advertisements may omit a service UUID.
         central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
         scanTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(15)) } catch { return }
-            self?.stopScan()
+            guard let self, self.scanGeneration == search else { return }
+            self.stopScan()
         }
     }
 
     func stopScan() {
+        let wasScanning = isScanning
         wantsScan = false
+        scanGeneration = UUID()
+        scanStartedAt = nil
         scanTask?.cancel()
         scanTask = nil
         central?.stopScan()
         isScanning = false
-        if !isConnected && !isBusy { status = devices.isEmpty ? "Nenhum Divoom encontrado. Ligue-o e libere a conexão do outro aparelho." : "Selecione um aparelho para conectar." }
+        if wasScanning { log("BUSCA", "Busca encerrada: \(devices.count) candidato(s) compatível(is) na lista; nenhum comando enviado.") }
+        if !isConnected && !isBusy { status = devices.isEmpty ? "Nenhum Divoom encontrado nos anúncios ou nas conexões do iOS. Verifique alimentação e permissão Bluetooth." : "Selecione um aparelho para conectar." }
+    }
+
+    private func upsertCandidate(_ candidate: CBPeripheral, name: String, rssi: Int, systemConnected: Bool, source: String) {
+        let id = candidate.identifier
+        peripherals[id] = candidate
+        if let index = devices.firstIndex(where: { $0.id == id }) {
+            devices[index] = MobileDivoomDevice(id: id, name: name, rssi: rssi,
+                                              isConnectedToSystem: systemConnected || devices[index].isConnectedToSystem)
+        } else {
+            devices.append(MobileDivoomDevice(id: id, name: name, rssi: rssi, isConnectedToSystem: systemConnected))
+            log("BUSCA", "Candidato compatível: \(name); origem: \(source). Perfil ainda será verificado antes de enviar.")
+        }
+        devices.sort {
+            if $0.isConnectedToSystem != $1.isConnectedToSystem { return $0.isConnectedToSystem }
+            return $0.rssi > $1.rssi
+        }
+        if selectedDeviceID == nil { selectedDeviceID = id }
     }
 
     func connect() {
@@ -512,6 +551,8 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
 
     private func discardCentralManager() {
         wantsScan = false
+        scanGeneration = UUID()
+        scanStartedAt = nil
         scanTask?.cancel()
         scanTask = nil
         central?.stopScan()
@@ -545,18 +586,22 @@ final class MobileBluetoothController: NSObject, CBCentralManagerDelegate {
     }
     nonisolated func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let managerReference = MainQueueCBReference(value: central)
-        let id = peripheral.identifier
-        let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name ?? "Aparelho sem nome"
+        let observedAt = ContinuousClock.now
+        let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        let peripheralName = peripheral.name
+        let advertised = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? [])
+            + (advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? [])
+        let services = Set(advertised.map { $0.uuidString })
+        // Unrelated advertisements are discarded before retaining or logging the peripheral.
+        guard BLEProfile.isDiscoveryCandidate(localName: localName, peripheralName: peripheralName,
+                                              advertisedServiceUUIDs: services) else { return }
+        let name = BLEProfile.discoveryName(localName: localName, peripheralName: peripheralName)
         let rssi = RSSI.intValue
         let reference = MainQueueCBReference(value: peripheral)
-        guard ["divoom", "ditoo", "timebox", "pixoo", "tivoo", "backpack"].contains(where: { name.localizedCaseInsensitiveContains($0) }) else { return }
         Task { @MainActor [weak self] in
-            guard let self, let current = self.central, ObjectIdentifier(current) == ObjectIdentifier(managerReference.value), self.isScanning else { return }
-            self.peripherals[id] = reference.value
-            let item = MobileDivoomDevice(id: id, name: name, rssi: rssi)
-            if let index = self.devices.firstIndex(where: { $0.id == id }) { self.devices[index] = item } else { self.devices.append(item) }
-            self.devices.sort { $0.rssi > $1.rssi }
-            if self.selectedDeviceID == nil { self.selectedDeviceID = id }
+            guard let self, let current = self.central, ObjectIdentifier(current) == ObjectIdentifier(managerReference.value),
+                  self.isScanning, let startedAt = self.scanStartedAt, observedAt >= startedAt else { return }
+            self.upsertCandidate(reference.value, name: name, rssi: rssi, systemConnected: false, source: "anúncio BLE")
         }
     }
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {

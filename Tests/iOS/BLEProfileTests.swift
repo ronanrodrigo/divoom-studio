@@ -125,6 +125,28 @@ final class BLEProfileTests: XCTestCase {
         XCTAssertFalse(gate.finishCancellation(deviceID: id), "A stale old terminal callback has no active cancellation to release")
     }
 
+    func testDiscoveryAcceptsRenamedOrUnnamedKnownService() {
+        let service = BLEProfile.issCSerial.serviceUUID.lowercased()
+        XCTAssertTrue(BLEProfile.isDiscoveryCandidate(localName: nil, peripheralName: nil, advertisedServiceUUIDs: [service]))
+        XCTAssertTrue(BLEProfile.isDiscoveryCandidate(localName: "Mesa do escritório", peripheralName: "Meu visor", advertisedServiceUUIDs: [service]))
+        XCTAssertEqual(BLEProfile.discoveryName(localName: "  ", peripheralName: "Ditoo-Plus-light"), "Ditoo-Plus-light")
+        XCTAssertEqual(BLEProfile.discoveryName(localName: nil, peripheralName: nil), "BLE com serviço compatível (sem nome)")
+    }
+
+    func testDiscoveryChecksBothNamesWithoutRequiringAdvertisedService() {
+        XCTAssertTrue(BLEProfile.isDiscoveryCandidate(localName: "Ditoo-Plus-light", peripheralName: nil, advertisedServiceUUIDs: []))
+        XCTAssertTrue(BLEProfile.isDiscoveryCandidate(localName: "", peripheralName: "Divoom", advertisedServiceUUIDs: []))
+        XCTAssertTrue(BLEProfile.isDiscoveryCandidate(localName: "Nome local genérico", peripheralName: "DITOO", advertisedServiceUUIDs: []))
+        XCTAssertTrue(BLEProfile.isDiscoveryCandidate(localName: "Pixoo", peripheralName: nil, advertisedServiceUUIDs: []))
+    }
+
+    func testDiscoveryRejectsUnrelatedAdvertisements() {
+        XCTAssertFalse(BLEProfile.isDiscoveryCandidate(localName: "Fones", peripheralName: "Fones", advertisedServiceUUIDs: ["180F"]))
+        XCTAssertFalse(BLEProfile.isDiscoveryCandidate(localName: nil, peripheralName: nil, advertisedServiceUUIDs: []))
+        XCTAssertFalse(BLEProfile.isDiscoveryCandidate(localName: "Visor", peripheralName: nil, advertisedServiceUUIDs: ["FFF0"]))
+        XCTAssertFalse(BLEProfile.isDiscoveryCandidate(localName: "Visor", peripheralName: nil, advertisedServiceUUIDs: [BLEProfile.issCSerial.writeUUID]))
+    }
+
     @MainActor
     func testControllerStartsInDiagnosticModeWithoutScanning() {
         let controller = MobileBluetoothController()

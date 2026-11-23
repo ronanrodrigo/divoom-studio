@@ -38,7 +38,7 @@ A conta precisa permitir criar um AppID/perfil para dev.ronanrodrigo.DivoomStudi
 
 ## Conectar ao Ditoo
 
-Feche a conexão de controle no Mac ou no app oficial antes de conectar a versão iPhone: o dispositivo aceita uma conexão de controle por vez.
+A busca também consulta o canal de controle já conectado ao iOS pelo serviço conhecido, além de procurar anúncios próximos. Estar conectado no app oficial não garante que o aparelho continue anunciando. Para isolar falhas e evitar comandos concorrentes durante os testes, interrompa transmissões no Mac e no app oficial antes de enviar pelo Divoom Studio.
 
 Na aba Aparelho: Buscar, escolha o DitooLight, selecione o perfil DitooPlus e Conectar. Confira primeiro um controle curto e uma imagem. Confirme visualmente o resultado: ACK confirma o pacote, não sua aparência na tela. Logs podem conter identificadores pessoais; compartilhe-os apenas quando necessário e não os versione.
 

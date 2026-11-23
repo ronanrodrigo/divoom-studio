@@ -9,20 +9,24 @@ struct MobileDeviceView: View {
                 Text(model.bluetooth.status).foregroundStyle(.secondary)
                 Picker("Protocolo", selection: Binding(get: { model.bluetooth.profileSelection }, set: { model.bluetooth.profileSelection = $0 })) {
                     ForEach(BLEProtocolSelection.allCases) { profile in Text(profile.rawValue).tag(profile) }
-                }
+                }.accessibilityIdentifier("mobile.protocolSelection")
                 Text(model.bluetooth.compatibilityStatus).font(.caption).foregroundStyle(.secondary)
                 Text(model.bluetooth.profileDescription).font(.caption2).foregroundStyle(.secondary)
                 ForEach(model.bluetooth.devices) { device in
                     Button {
                         model.bluetooth.selectedDeviceID = device.id
                     } label: {
-                        HStack { VStack(alignment: .leading) { Text(device.name); Text("Sinal: \(device.rssi) dBm").font(.caption).foregroundStyle(.secondary) }; Spacer(); if model.bluetooth.selectedDeviceID == device.id { Image(systemName: "checkmark") } }
+                        HStack { VStack(alignment: .leading) { Text(device.name); Text(device.signalDescription).font(.caption).foregroundStyle(.secondary) }; Spacer(); if model.bluetooth.selectedDeviceID == device.id { Image(systemName: "checkmark") } }
                     }
+                    .accessibilityIdentifier("mobile.bleCandidate.\(device.id.uuidString)")
+                    .accessibilityLabel(device.name)
+                    .accessibilityValue(device.signalDescription)
                 }
                 HStack {
                     Button("Buscar", action: model.bluetooth.scan)
                     Button("Parar busca", action: model.bluetooth.stopScan)
                 }
+                .buttonStyle(.borderless)
                 if model.bluetooth.isConnected { Button("Desconectar") { model.stopCasting(); model.bluetooth.disconnect() } }
                 else { Button("Conectar", action: model.bluetooth.connect).disabled(model.bluetooth.selectedDeviceID == nil || model.bluetooth.isBusy) }
                 Text("A conexão real exige um iPhone físico e um Ditoo com canal BLE compatível. O simulador permite editar e explorar a interface, mas não comprova Bluetooth.").font(.caption).foregroundStyle(.secondary)
