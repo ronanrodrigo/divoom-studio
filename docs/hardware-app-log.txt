@@ -1,0 +1,10 @@
+2026-11-23T13:01:40Z [INFO] Abrindo RFCOMM [endereço Bluetooth omitido], canal 1
+2026-11-23T13:01:40Z [INFO] Conectado por Bluetooth; aguardando ação
+2026-11-23T13:01:47Z [INFO] Relógio: 2 pacote(s); sem repetição automática
+2026-11-23T13:01:47Z [TX] 01 04 00 2D 01 32 00 02
+2026-11-23T13:01:48Z [TX] 01 0D 00 45 00 01 00 01 00 00 00 00 C0 E7 FB 01 02
+2026-11-23T13:01:48Z [RX] 01 06 00 04 45 55 00 A4 00 02
+2026-11-23T13:01:48Z [ACK] Resposta ao comando 0x45; dados 00
+2026-11-23T13:01:48Z [RX] 01 06 00 04 31 55 5F EF 00 02
+2026-11-23T13:01:48Z [ACK] Resposta ao comando 0x31; dados 5F
+2026-11-23T13:01:50Z [INFO] Relógio: enviado; resposta observada para 1 comando(s) distinto(s), sem confirmação por pacote. Confira o aparelho.
