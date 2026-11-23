@@ -7,23 +7,45 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01B3714B1533DBBAE2D27198 /* MobileBluetoothController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0403AC9A90A426567D3DB70 /* MobileBluetoothController.swift */; };
 		041070E5721850AA8C573C41 /* PixelEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED8A5F9D9060F8B80222FEF7 /* PixelEditorView.swift */; };
+		0833B837D5D91F20890B00DD /* WeatherServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC41E4DCFC859126BC551BC /* WeatherServiceTests.swift */; };
+		0C59476A9D73EE9D29C7E34C /* DivoomMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 209AE4A1B0083C7CC9EF4074 /* DivoomMobileApp.swift */; };
+		117B1C8EBC21026AAC278027 /* DashboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B6DEE54329E2DA15879F6DA /* DashboardRenderer.swift */; };
+		1BA651432896C2E76E1DC277 /* MobileDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C224CA600C296AD0D901E7 /* MobileDashboardView.swift */; };
 		20ED3114A8480E22277C6377 /* DivoomStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A7F7D27F54E755FA6C2975 /* DivoomStudioApp.swift */; };
 		20F083BA0FD73BCB6A3D53BF /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ECBA567BF6F2CAB48B65549 /* AppModel.swift */; };
+		23AA7E6C9B0643113F934737 /* BLEProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FE5C418915007DECDA4282 /* BLEProfileTests.swift */; };
 		2F62BAFDFF388DCFC8828F6D /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0DC06465BC039A6D998C117 /* ImageIO.framework */; };
+		37C5134525AF14F566A8B4A4 /* MobileAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01D0488F88530F6E14801F4E /* MobileAssets.xcassets */; };
+		38D4F20F645CC1FE230B8BA3 /* DivoomProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE769E4D802333073B676C9D /* DivoomProtocol.swift */; };
 		3C18FAAF24BFCF4BB0C29FC6 /* DivoomProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE769E4D802333073B676C9D /* DivoomProtocol.swift */; };
+		3CA94C45149DF4CA3DE2C0BD /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D850B3CE7CF42D692CB0416 /* UniformTypeIdentifiers.framework */; };
 		55B39F924D24CDDF79F742F0 /* DashboardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B6DEE54329E2DA15879F6DA /* DashboardRenderer.swift */; };
 		5FED1A27270DAEF0185B6345 /* PixelProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6145316C1A9DDCE55A71D8E0 /* PixelProject.swift */; };
+		62760599D17EE3DAE15B1FCB /* PixelMediaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95162777F82646C8987C83E7 /* PixelMediaTests.swift */; };
+		676195EF76224919EB8A379D /* MobileAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C86891384F62B4232209DFC /* MobileAppModel.swift */; };
+		6ADE720D7D730E045180CF26 /* MobileDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7768A5BD7B6A2287B4E9B6 /* MobileDeviceView.swift */; };
 		6B0D644EE82D64D834F91612 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F6FE9C975CEC0E7595277BD /* AppKit.framework */; };
 		6C5F64FFB1CACA0CEED10D06 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD83AF8BD8CBD7F7017C9947 /* DashboardView.swift */; };
 		709C7EAC4E40169FBADF1136 /* DashboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0612142E1008D8932A6BBC /* DashboardModel.swift */; };
+		779CE08680AC0A30CF35C486 /* MobileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFAF00A36D47A2161A68817 /* MobileEditorView.swift */; };
 		7A5709C1B18E623E467B9971 /* DivoomProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248747C7D94E044F46957EB6 /* DivoomProtocolTests.swift */; };
 		861FCBA5FCB71E80AB2E8B1A /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = AE532E9F093BE2F90D520C3C /* AppIcon.icns */; };
+		8C997391962453C7D4211F5F /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20E1D86847C4B554489DC23 /* WeatherService.swift */; };
 		8EBC73442EF90ACAC0CDE0C8 /* DashboardRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00FBEE31CF6A7B5E810D87C /* DashboardRendererTests.swift */; };
+		945CB09C9CD1BDEBE0AD2CA3 /* MobileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D068A8D11494B4E3CAA915 /* MobileUITests.swift */; };
+		9C6C3D1F2D788B56B3D7F0D7 /* DivoomProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248747C7D94E044F46957EB6 /* DivoomProtocolTests.swift */; };
+		A3B6C4086D5B523E8DF778A5 /* PixelProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6145316C1A9DDCE55A71D8E0 /* PixelProject.swift */; };
 		A97C168745A344911B4B6A88 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20E1D86847C4B554489DC23 /* WeatherService.swift */; };
 		ACA8895CA9ED9B84515AB255 /* PixelMediaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95162777F82646C8987C83E7 /* PixelMediaTests.swift */; };
 		ADA1F4E31FC221C7020086CC /* BluetoothController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05220B96D5F4B2CA48BA5D60 /* BluetoothController.swift */; };
+		B5C7C5D913E5B38013B78191 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92547D88B62539B6416FF131 /* CoreBluetooth.framework */; };
 		DC3447CE5748F2AA8EEBC32B /* WeatherServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC41E4DCFC859126BC551BC /* WeatherServiceTests.swift */; };
+		E0A886ABD99C095BE9EB3C10 /* PhysicalBluetoothUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18027C1C4205E35F6E2C47D0 /* PhysicalBluetoothUITests.swift */; };
+		E639B0D83241AA52DC3576C5 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0DC06465BC039A6D998C117 /* ImageIO.framework */; };
+		EC44F6904290F333A98D7B42 /* BLEProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667ED5A19170156645353A49 /* BLEProfile.swift */; };
+		F1F883B3981B69B9E14D2A75 /* DashboardRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00FBEE31CF6A7B5E810D87C /* DashboardRendererTests.swift */; };
 		FCE6CDAF06C925782E85C47D /* IOBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67084EEB91D677AAC0B8BA64 /* IOBluetooth.framework */; };
 /* End PBXBuildFile section */
 
@@ -35,32 +57,72 @@
 			remoteGlobalIDString = 0806DB8214664C9960196F04;
 			remoteInfo = DivoomStudio;
 		};
+		4B45B8B1961FAC1DA1F13739 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61A9F8F88A5F60BA5E9687C0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA40C6ED8D2A31ED7A5DFBA0;
+			remoteInfo = DivoomStudioMobile;
+		};
+		EFC77BD744FD659BE9B649E7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61A9F8F88A5F60BA5E9687C0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA40C6ED8D2A31ED7A5DFBA0;
+			remoteInfo = DivoomStudioMobile;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01D0488F88530F6E14801F4E /* MobileAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = MobileAssets.xcassets; sourceTree = "<group>"; };
 		05220B96D5F4B2CA48BA5D60 /* BluetoothController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothController.swift; sourceTree = "<group>"; };
+		0D7768A5BD7B6A2287B4E9B6 /* MobileDeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDeviceView.swift; sourceTree = "<group>"; };
 		0DC41E4DCFC859126BC551BC /* WeatherServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherServiceTests.swift; sourceTree = "<group>"; };
+		10FE5C418915007DECDA4282 /* BLEProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEProfileTests.swift; sourceTree = "<group>"; };
+		18027C1C4205E35F6E2C47D0 /* PhysicalBluetoothUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalBluetoothUITests.swift; sourceTree = "<group>"; };
+		209AE4A1B0083C7CC9EF4074 /* DivoomMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DivoomMobileApp.swift; sourceTree = "<group>"; };
 		248747C7D94E044F46957EB6 /* DivoomProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DivoomProtocolTests.swift; sourceTree = "<group>"; };
 		2ECBA567BF6F2CAB48B65549 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		38C224CA600C296AD0D901E7 /* MobileDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileDashboardView.swift; sourceTree = "<group>"; };
+		4FFAF00A36D47A2161A68817 /* MobileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEditorView.swift; sourceTree = "<group>"; };
+		52C58EC1ACE4261687603088 /* DivoomStudioMobileUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = DivoomStudioMobileUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5B6DEE54329E2DA15879F6DA /* DashboardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRenderer.swift; sourceTree = "<group>"; };
 		6145316C1A9DDCE55A71D8E0 /* PixelProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelProject.swift; sourceTree = "<group>"; };
 		63A7F7D27F54E755FA6C2975 /* DivoomStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DivoomStudioApp.swift; sourceTree = "<group>"; };
+		667ED5A19170156645353A49 /* BLEProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEProfile.swift; sourceTree = "<group>"; };
 		67084EEB91D677AAC0B8BA64 /* IOBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOBluetooth.framework; path = System/Library/Frameworks/IOBluetooth.framework; sourceTree = SDKROOT; };
 		6A0612142E1008D8932A6BBC /* DashboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardModel.swift; sourceTree = "<group>"; };
+		6C86891384F62B4232209DFC /* MobileAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAppModel.swift; sourceTree = "<group>"; };
+		85E36548D1F8A5839AA82497 /* DivoomStudioMobileTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = DivoomStudioMobileTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		89AFEA0FE6313FA40B3BB16B /* DivoomStudioMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DivoomStudioMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F6FE9C975CEC0E7595277BD /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		92547D88B62539B6416FF131 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		95162777F82646C8987C83E7 /* PixelMediaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelMediaTests.swift; sourceTree = "<group>"; };
 		969F43D4EEA36DB76F7DF37E /* DivoomStudioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DivoomStudioTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D850B3CE7CF42D692CB0416 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		A00FBEE31CF6A7B5E810D87C /* DashboardRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRendererTests.swift; sourceTree = "<group>"; };
+		A0D068A8D11494B4E3CAA915 /* MobileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileUITests.swift; sourceTree = "<group>"; };
 		A20E1D86847C4B554489DC23 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		AB0F482B5662F1D24C5FC9E0 /* DivoomStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DivoomStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD83AF8BD8CBD7F7017C9947 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		AE532E9F093BE2F90D520C3C /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		B0403AC9A90A426567D3DB70 /* MobileBluetoothController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBluetoothController.swift; sourceTree = "<group>"; };
 		BE769E4D802333073B676C9D /* DivoomProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DivoomProtocol.swift; sourceTree = "<group>"; };
 		C0DC06465BC039A6D998C117 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		ED8A5F9D9060F8B80222FEF7 /* PixelEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		D45D2DEA543AF274C42D6FB8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B5C7C5D913E5B38013B78191 /* CoreBluetooth.framework in Frameworks */,
+				E639B0D83241AA52DC3576C5 /* ImageIO.framework in Frameworks */,
+				3CA94C45149DF4CA3DE2C0BD /* UniformTypeIdentifiers.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D7D5CB6003ABE617F588EE34 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -74,6 +136,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0AF023EC20D1D4DE6C48D284 /* Bluetooth */ = {
+			isa = PBXGroup;
+			children = (
+				667ED5A19170156645353A49 /* BLEProfile.swift */,
+				B0403AC9A90A426567D3DB70 /* MobileBluetoothController.swift */,
+			);
+			path = Bluetooth;
+			sourceTree = "<group>";
+		};
 		0D2B2F5C42F993BFDAC1C177 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -81,16 +152,36 @@
 				248747C7D94E044F46957EB6 /* DivoomProtocolTests.swift */,
 				95162777F82646C8987C83E7 /* PixelMediaTests.swift */,
 				0DC41E4DCFC859126BC551BC /* WeatherServiceTests.swift */,
+				6F8DA9052BBD5428D44F1573 /* iOS */,
+				17C97C270644151398FD81A7 /* iOSUITests */,
 			);
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		17C97C270644151398FD81A7 /* iOSUITests */ = {
+			isa = PBXGroup;
+			children = (
+				A0D068A8D11494B4E3CAA915 /* MobileUITests.swift */,
+				18027C1C4205E35F6E2C47D0 /* PhysicalBluetoothUITests.swift */,
+			);
+			path = iOSUITests;
 			sourceTree = "<group>";
 		};
 		1878BB9B9E0A5F49DDADF41F /* Resources */ = {
 			isa = PBXGroup;
 			children = (
 				AE532E9F093BE2F90D520C3C /* AppIcon.icns */,
+				01D0488F88530F6E14801F4E /* MobileAssets.xcassets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		6F8DA9052BBD5428D44F1573 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				10FE5C418915007DECDA4282 /* BLEProfileTests.swift */,
+			);
+			path = iOS;
 			sourceTree = "<group>";
 		};
 		8854D6120048B06DABB59942 /* Protocol */ = {
@@ -109,6 +200,14 @@
 			path = Bluetooth;
 			sourceTree = "<group>";
 		};
+		93A9EB657DEF8DB0D63CBAC6 /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+				4FFAF00A36D47A2161A68817 /* MobileEditorView.swift */,
+			);
+			path = Editor;
+			sourceTree = "<group>";
+		};
 		B03F48AF028065D9513DE470 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
@@ -118,10 +217,31 @@
 			path = Editor;
 			sourceTree = "<group>";
 		};
+		B04DED4872579553EFA78442 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				38C224CA600C296AD0D901E7 /* MobileDashboardView.swift */,
+				0D7768A5BD7B6A2287B4E9B6 /* MobileDeviceView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B4C0FD4FF854C7F38622BAC9 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				209AE4A1B0083C7CC9EF4074 /* DivoomMobileApp.swift */,
+				6C86891384F62B4232209DFC /* MobileAppModel.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
 		BBC37582895656D103B4F123 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				AB0F482B5662F1D24C5FC9E0 /* DivoomStudio.app */,
+				89AFEA0FE6313FA40B3BB16B /* DivoomStudioMobile.app */,
+				85E36548D1F8A5839AA82497 /* DivoomStudioMobileTests.xctest */,
+				52C58EC1ACE4261687603088 /* DivoomStudioMobileUITests.xctest */,
 				969F43D4EEA36DB76F7DF37E /* DivoomStudioTests.xctest */,
 			);
 			name = Products;
@@ -145,6 +265,7 @@
 				8D48F25D77ABDD01C78E7EEA /* Bluetooth */,
 				BD1A1A414CE05B4A107ACBED /* Dashboard */,
 				B03F48AF028065D9513DE470 /* Editor */,
+				F5000CD04B6BA30830BBDFBB /* iOS */,
 				8854D6120048B06DABB59942 /* Protocol */,
 			);
 			path = Sources;
@@ -163,10 +284,23 @@
 			isa = PBXGroup;
 			children = (
 				8F6FE9C975CEC0E7595277BD /* AppKit.framework */,
+				92547D88B62539B6416FF131 /* CoreBluetooth.framework */,
 				C0DC06465BC039A6D998C117 /* ImageIO.framework */,
 				67084EEB91D677AAC0B8BA64 /* IOBluetooth.framework */,
+				9D850B3CE7CF42D692CB0416 /* UniformTypeIdentifiers.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F5000CD04B6BA30830BBDFBB /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				B4C0FD4FF854C7F38622BAC9 /* App */,
+				0AF023EC20D1D4DE6C48D284 /* Bluetooth */,
+				93A9EB657DEF8DB0D63CBAC6 /* Editor */,
+				B04DED4872579553EFA78442 /* Views */,
+			);
+			path = iOS;
 			sourceTree = "<group>";
 		};
 		F87506588BD1E535D9D8BABB = {
@@ -202,6 +336,42 @@
 			productReference = AB0F482B5662F1D24C5FC9E0 /* DivoomStudio.app */;
 			productType = "com.apple.product-type.application";
 		};
+		1A9DDAAADAA1F54E1C96EEAD /* DivoomStudioMobileTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 19ED2EBAF20FE80279B5189D /* Build configuration list for PBXNativeTarget "DivoomStudioMobileTests" */;
+			buildPhases = (
+				6EB4846D08BDB070B5F89C78 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7479BA5ACFBD4EDD4FEDC129 /* PBXTargetDependency */,
+			);
+			name = DivoomStudioMobileTests;
+			packageProductDependencies = (
+			);
+			productName = DivoomStudioMobileTests;
+			productReference = 85E36548D1F8A5839AA82497 /* DivoomStudioMobileTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6DAB663F4B52024AD9C132C9 /* DivoomStudioMobileUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AAFDED27FD3470BA25CC7393 /* Build configuration list for PBXNativeTarget "DivoomStudioMobileUITests" */;
+			buildPhases = (
+				510D4A5A25B2A47184905A91 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CC701980193798B6172CD47 /* PBXTargetDependency */,
+			);
+			name = DivoomStudioMobileUITests;
+			packageProductDependencies = (
+			);
+			productName = DivoomStudioMobileUITests;
+			productReference = 52C58EC1ACE4261687603088 /* DivoomStudioMobileUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		94DE0C03591D7A225EC15491 /* DivoomStudioTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 16F29507D327B75471345C24 /* Build configuration list for PBXNativeTarget "DivoomStudioTests" */;
@@ -220,6 +390,25 @@
 			productReference = 969F43D4EEA36DB76F7DF37E /* DivoomStudioTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		EA40C6ED8D2A31ED7A5DFBA0 /* DivoomStudioMobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C570D5FC9E3FF53D86B3E3AC /* Build configuration list for PBXNativeTarget "DivoomStudioMobile" */;
+			buildPhases = (
+				80DE7D22D04AF923225D143E /* Sources */,
+				75C0A2FAD67A9F08B2A54823 /* Resources */,
+				D45D2DEA543AF274C42D6FB8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DivoomStudioMobile;
+			packageProductDependencies = (
+			);
+			productName = DivoomStudioMobile;
+			productReference = 89AFEA0FE6313FA40B3BB16B /* DivoomStudioMobile.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -233,9 +422,22 @@
 						DevelopmentTeam = "";
 						ProvisioningStyle = Manual;
 					};
+					1A9DDAAADAA1F54E1C96EEAD = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					6DAB663F4B52024AD9C132C9 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						TestTargetID = EA40C6ED8D2A31ED7A5DFBA0;
+					};
 					94DE0C03591D7A225EC15491 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Manual;
+					};
+					EA40C6ED8D2A31ED7A5DFBA0 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -255,6 +457,9 @@
 			targets = (
 				0806DB8214664C9960196F04 /* DivoomStudio */,
 				94DE0C03591D7A225EC15491 /* DivoomStudioTests */,
+				EA40C6ED8D2A31ED7A5DFBA0 /* DivoomStudioMobile */,
+				6DAB663F4B52024AD9C132C9 /* DivoomStudioMobileUITests */,
+				1A9DDAAADAA1F54E1C96EEAD /* DivoomStudioMobileTests */,
 			);
 		};
 /* End PBXProject section */
@@ -265,6 +470,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				861FCBA5FCB71E80AB2E8B1A /* AppIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		75C0A2FAD67A9F08B2A54823 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37C5134525AF14F566A8B4A4 /* MobileAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,6 +501,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		510D4A5A25B2A47184905A91 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				945CB09C9CD1BDEBE0AD2CA3 /* MobileUITests.swift in Sources */,
+				E0A886ABD99C095BE9EB3C10 /* PhysicalBluetoothUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		678643F21BBED04519B3569A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -299,9 +521,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6EB4846D08BDB070B5F89C78 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				23AA7E6C9B0643113F934737 /* BLEProfileTests.swift in Sources */,
+				F1F883B3981B69B9E14D2A75 /* DashboardRendererTests.swift in Sources */,
+				9C6C3D1F2D788B56B3D7F0D7 /* DivoomProtocolTests.swift in Sources */,
+				62760599D17EE3DAE15B1FCB /* PixelMediaTests.swift in Sources */,
+				0833B837D5D91F20890B00DD /* WeatherServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		80DE7D22D04AF923225D143E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC44F6904290F333A98D7B42 /* BLEProfile.swift in Sources */,
+				117B1C8EBC21026AAC278027 /* DashboardRenderer.swift in Sources */,
+				0C59476A9D73EE9D29C7E34C /* DivoomMobileApp.swift in Sources */,
+				38D4F20F645CC1FE230B8BA3 /* DivoomProtocol.swift in Sources */,
+				676195EF76224919EB8A379D /* MobileAppModel.swift in Sources */,
+				01B3714B1533DBBAE2D27198 /* MobileBluetoothController.swift in Sources */,
+				1BA651432896C2E76E1DC277 /* MobileDashboardView.swift in Sources */,
+				6ADE720D7D730E045180CF26 /* MobileDeviceView.swift in Sources */,
+				779CE08680AC0A30CF35C486 /* MobileEditorView.swift in Sources */,
+				A3B6C4086D5B523E8DF778A5 /* PixelProject.swift in Sources */,
+				8C997391962453C7D4211F5F /* WeatherService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		4CC701980193798B6172CD47 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA40C6ED8D2A31ED7A5DFBA0 /* DivoomStudioMobile */;
+			targetProxy = EFC77BD744FD659BE9B649E7 /* PBXContainerItemProxy */;
+		};
+		7479BA5ACFBD4EDD4FEDC129 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA40C6ED8D2A31ED7A5DFBA0 /* DivoomStudioMobile */;
+			targetProxy = 4B45B8B1961FAC1DA1F13739 /* PBXContainerItemProxy */;
+		};
 		CA6B0958D9F694258B28AE41 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0806DB8214664C9960196F04 /* DivoomStudio */;
@@ -310,6 +572,48 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		13E22DAB0759825374742F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Mobile-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ronanrodrigo.DivoomStudioMobile;
+				PRODUCT_MODULE_NAME = DivoomStudioMobile;
+				PRODUCT_NAME = "Divoom Studio";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		29D8853A274367150F6EE434 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ronanrodrigo.DivoomStudioMobileUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = DivoomStudioMobile;
+			};
+			name = Release;
+		};
 		3AB15416B5D06B37A6D4C060 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -388,7 +692,6 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -483,12 +786,53 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		B3033CEDAFE3D951ED4B2AC1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Mobile-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ronanrodrigo.DivoomStudioMobile;
+				PRODUCT_MODULE_NAME = DivoomStudioMobile;
+				PRODUCT_NAME = "Divoom Studio";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BE03AF8134591575658998FF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ronanrodrigo.DivoomStudioMobileTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Divoom Studio.app/Divoom Studio";
 			};
 			name = Release;
 		};
@@ -509,6 +853,46 @@
 			};
 			name = Release;
 		};
+		EC7574422BC16574D8217C48 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ronanrodrigo.DivoomStudioMobileTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Divoom Studio.app/Divoom Studio";
+			};
+			name = Debug;
+		};
+		F5FF8CB25411E0CABB82B993 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ronanrodrigo.DivoomStudioMobileUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = DivoomStudioMobile;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -517,6 +901,15 @@
 			buildConfigurations = (
 				3AB15416B5D06B37A6D4C060 /* Debug */,
 				D5CB57A38F37F89F72A28550 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		19ED2EBAF20FE80279B5189D /* Build configuration list for PBXNativeTarget "DivoomStudioMobileTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC7574422BC16574D8217C48 /* Debug */,
+				BE03AF8134591575658998FF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -535,6 +928,24 @@
 			buildConfigurations = (
 				70EB019A0B6ECD3626B88474 /* Debug */,
 				492945359319A17036D72672 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AAFDED27FD3470BA25CC7393 /* Build configuration list for PBXNativeTarget "DivoomStudioMobileUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F5FF8CB25411E0CABB82B993 /* Debug */,
+				29D8853A274367150F6EE434 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C570D5FC9E3FF53D86B3E3AC /* Build configuration list for PBXNativeTarget "DivoomStudioMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				13E22DAB0759825374742F0C /* Debug */,
+				B3033CEDAFE3D951ED4B2AC1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -98,7 +98,7 @@ final class AppModel {
         var target = url
         if target == nil { let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; guard panel.runModal() == .OK else { return }; target = panel.url }
         guard let target else { return }
-        do { let size = try target.resourceValues(forKeys: [.fileSizeKey]).fileSize; guard let size, size <= 2_000_000 else { throw CocoaError(.fileReadTooLarge) }; let data = try Data(contentsOf: target, options: .mappedIfSafe); guard data.count <= 2_000_000 else { throw CocoaError(.fileReadTooLarge) }; let loaded = try JSONDecoder().decode(PixelProject.self, from: data).validated(); stopPlayback(); project = loaded; selectedFrameID = loaded.frames[0].id; message = "Projeto aberto." } catch { message = error.localizedDescription }
+        do { let loaded = try PixelProject.load(from: target); stopPlayback(); project = loaded; selectedFrameID = loaded.frames[0].id; message = "Projeto aberto." } catch { message = error.localizedDescription }
     }
     private var libraryDirectory: URL { FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "DivoomStudio/Library", directoryHint: .isDirectory) }
     func refreshLibrary() { library = ((try? FileManager.default.contentsOfDirectory(at: libraryDirectory, includingPropertiesForKeys: nil)) ?? []).filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.map { LibraryEntry(id: $0, name: $0.deletingPathExtension().lastPathComponent) } }

@@ -1,7 +1,11 @@
 import XCTest
 import ImageIO
 import UniformTypeIdentifiers
+#if os(iOS)
+@testable import DivoomStudioMobile
+#else
 @testable import DivoomStudio
+#endif
 
 final class PixelMediaTests: XCTestCase {
     private func temporaryURL(_ ext: String) -> URL {
@@ -119,4 +123,18 @@ final class PixelMediaTests: XCTestCase {
         invalid = project; invalid.frames[0].rgb = [1, 2, 3]
         XCTAssertThrowsError(try invalid.validated())
     }
+    func testProjectFileLoadRejectsSparseOversizedFileAndLoadsValidProject() throws {
+        let url = temporaryURL("json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let project = PixelProject()
+        try JSONEncoder().encode(project).write(to: url)
+        XCTAssertEqual(try PixelProject.load(from: url), project)
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.truncate(atOffset: 100_000_000)
+        try handle.close()
+        XCTAssertThrowsError(try PixelProject.load(from: url)) { error in
+            XCTAssertEqual((error as NSError).code, CocoaError.fileReadTooLarge.rawValue)
+        }
+    }
+
 }

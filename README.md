@@ -1,6 +1,12 @@
-# Divoom Studio para macOS
+# Divoom Studio para macOS e iPhone
 
 Aplicativo nativo SwiftUI para controlar o Ditoo-Plus por Bluetooth Classic. Construído e executado neste Mac com Xcode27/Swift6. A conexão e o envio de uma imagem foram confirmados no aparelho pelo usuário.
+
+## Versão iPhone
+
+O target **DivoomStudioMobile** oferece painel, clima/cidade, editor de pixels, biblioteca, relógio, alarmes e diagnóstico no iPhone(iOS17+). Usa CoreBluetooth e o canal BLE/Light do Ditoo, com protocolo próprio separado do RFCOMMdo Mac. [Instalação e limites da versão iPhone](docs/IPHONE.md).
+
+A transmissão do painel pausa ao sair do primeiro plano. A versão iPhone melhora a proximidade da conexão, mas não instala código personalizado no firmware nem torna hora/clima autônomos no Ditoo.
 
 ## Instalar
 
