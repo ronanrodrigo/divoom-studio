@@ -5,8 +5,8 @@ import UniformTypeIdentifiers
 
 @MainActor @Observable
 final class AppModel {
-    let bluetooth = BluetoothController()
-    let dashboard = DashboardModel()
+    let bluetooth: BluetoothController
+    let dashboard: DashboardModel
     var project: PixelProject
     var selectedFrameID: UUID
     var drawingColor = Color.cyan
@@ -20,26 +20,42 @@ final class AppModel {
     var twentyFourHour = true
     var clockColor = Color.cyan
     var mode = 0
-    var hasConfiguredAlarm = UserDefaults.standard.object(forKey: "alarm.configuredTime") != nil
-    var alarmTime = (UserDefaults.standard.object(forKey: "alarm.configuredTime") as? Date) ?? Date() {
-        didSet { hasConfiguredAlarm = true; UserDefaults.standard.set(alarmTime, forKey: "alarm.configuredTime") }
-    }
-    var alarmEnabled = UserDefaults.standard.bool(forKey: "alarm.configuredEnabled") {
-        didSet { UserDefaults.standard.set(alarmEnabled, forKey: "alarm.configuredEnabled") }
-    }
-    var alarmLabel = "Despertar"
+    private(set) var hasConfiguredAlarm = false
+    var alarmTime = Date() { didSet { alarmDraftChanged() } }
+    var alarmEnabled = false { didSet { alarmDraftChanged() } }
+    var alarmWeekdays: UInt8 = 0x3E { didSet { alarmDraftChanged() } }
+    var alarmVolume = 50.0 { didSet { alarmDraftChanged() } }
+    @ObservationIgnored private var isRestoringAlarm = true
+    @ObservationIgnored private let defaults: UserDefaults
     private var playbackTask: Task<Void, Never>?
 
-    init() {
+    init(defaults: UserDefaults = .standard, loadPairedDevices: Bool = true) {
+        self.defaults = defaults
+        bluetooth = BluetoothController(defaults: defaults, loadPairedDevices: loadPairedDevices)
+        dashboard = DashboardModel(defaults: defaults)
         let initial = PixelProject()
         project = initial
         selectedFrameID = initial.frames[0].id
+        let alarm = MacAlarmPreferences.load(from: defaults)
+        alarmTime = alarm.time
+        alarmEnabled = alarm.enabled
+        alarmWeekdays = alarm.weekdays
+        alarmVolume = alarm.volume
+        hasConfiguredAlarm = alarm.configured
+        isRestoringAlarm = false
         refreshLibrary()
+    }
+
+    func resumeAutomaticConnection() {
+        // Unit-test hosts must not open the user's saved physical device.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTestCase") == nil else { return }
+        bluetooth.startAutomaticConnection()
     }
 
     var currentFrame: PixelFrame { project.frames.first(where: { $0.id == selectedFrameID }) ?? project.frames[0] }
     var frameNumber: Int { (project.frames.firstIndex(where: { $0.id == selectedFrameID }) ?? 0) + 1 }
-    var canSend: Bool { bluetooth.isConnected && !bluetooth.isBusy }
+    var canSend: Bool { bluetooth.isConnected && !bluetooth.isBusy && !dashboard.isCasting }
 
     func paint(x: Int, y: Int) {
         guard !isPlaying, (0..<16).contains(x), (0..<16).contains(y), let index = project.frames.firstIndex(where: { $0.id == selectedFrameID }) else { return }
@@ -75,6 +91,40 @@ final class AppModel {
     func syncTime() { bluetooth.send([DivoomProtocol.syncTime(Date())], label: "Sincronizar horário") }
     func applyMode() { bluetooth.send([DivoomProtocol.channel(UInt8(mode))], label: "Modo de tela") }
 
+    private func alarmDraftChanged() {
+        guard !isRestoringAlarm else { return }
+        hasConfiguredAlarm = false
+        persistAlarm()
+    }
+
+    private func persistAlarm() {
+        MacAlarmPreferences(time: alarmTime, enabled: alarmEnabled, weekdays: alarmWeekdays,
+                            volume: alarmVolume, configured: hasConfiguredAlarm).save(to: defaults)
+    }
+
+    func applyAlarm() {
+        guard canSend else { return }
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: alarmTime)
+        do {
+            let payload = try DivoomProtocol.alarm(slot: 0, enabled: alarmEnabled, hour: parts.hour ?? 0,
+                                                 minute: parts.minute ?? 0, weekdays: alarmWeekdays, volume: Int(alarmVolume))
+            bluetooth.send([payload], label: "Alarme 0")
+            hasConfiguredAlarm = true
+            persistAlarm()
+            message = "Configuração encaminhada; confirme o alarme no aparelho."
+        } catch { message = error.localizedDescription }
+    }
+
+    func sendDashboardPage() {
+        guard canSend else { return }
+        let values = dashboard.values(date: Date(), alarmEnabled: alarmEnabled, alarmTime: alarmTime,
+                                      twentyFourHour: twentyFourHour, alarmConfigured: hasConfiguredAlarm)
+        do {
+            bluetooth.send(try DivoomProtocol.image(rgb: DashboardRenderer.render(page: dashboard.selectedPage, values: values)),
+                           label: "Painel · \(dashboard.selectedPage.title)")
+        } catch { message = error.localizedDescription }
+    }
+
     static func rgb(_ color: Color) -> (UInt8, UInt8, UInt8) {
         let c = NSColor(color).usingColorSpace(.deviceRGB) ?? .white
         return (UInt8(max(0, min(255, c.redComponent * 255))), UInt8(max(0, min(255, c.greenComponent * 255))), UInt8(max(0, min(255, c.blueComponent * 255))))
@@ -98,7 +148,7 @@ final class AppModel {
         var target = url
         if target == nil { let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; guard panel.runModal() == .OK else { return }; target = panel.url }
         guard let target else { return }
-        do { let size = try target.resourceValues(forKeys: [.fileSizeKey]).fileSize; guard let size, size <= 2_000_000 else { throw CocoaError(.fileReadTooLarge) }; let data = try Data(contentsOf: target, options: .mappedIfSafe); guard data.count <= 2_000_000 else { throw CocoaError(.fileReadTooLarge) }; let loaded = try JSONDecoder().decode(PixelProject.self, from: data).validated(); stopPlayback(); project = loaded; selectedFrameID = loaded.frames[0].id; message = "Projeto aberto." } catch { message = error.localizedDescription }
+        do { let loaded = try PixelProject.load(from: target); stopPlayback(); project = loaded; selectedFrameID = loaded.frames[0].id; message = "Projeto aberto." } catch { message = error.localizedDescription }
     }
     private var libraryDirectory: URL { FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "DivoomStudio/Library", directoryHint: .isDirectory) }
     func refreshLibrary() { library = ((try? FileManager.default.contentsOfDirectory(at: libraryDirectory, includingPropertiesForKeys: nil)) ?? []).filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.map { LibraryEntry(id: $0, name: $0.deletingPathExtension().lastPathComponent) } }

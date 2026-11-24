@@ -2,12 +2,45 @@ import SwiftUI
 
 @main
 struct DivoomStudioApp: App {
-    @State private var model = AppModel()
+    @State private var model: AppModel
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        let initialModel = AppModel()
+        _model = State(initialValue: initialModel)
+        initialModel.resumeAutomaticConnection()
+    }
     var body: some Scene {
         Window("Divoom Studio", id: "main") {
             StudioView(model: model)
                 .frame(minWidth: 1000, minHeight: 700)
                 .tint(.cyan)
+                .onAppear { model.resumeAutomaticConnection() }
+                .onDisappear {
+                    model.dashboard.stop()
+                    model.stopPlayback()
+                    model.bluetooth.prepareForSleep()
+                }
+                .onAppear { model.resumeAutomaticConnection() }
+                .onDisappear {
+                    model.dashboard.stop()
+                    model.stopPlayback()
+                    model.bluetooth.prepareForSleep()
+                }
+                .onChange(of: model.bluetooth.isConnected) { _, connected in
+                    if !connected { model.dashboard.stop() }
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { model.resumeAutomaticConnection() }
+                }
+                .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.willSleepNotification)) { _ in
+                    model.dashboard.stop()
+                    model.stopPlayback()
+                    model.bluetooth.prepareForSleep()
+                }
+                .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
+                    model.resumeAutomaticConnection()
+                }
         }
         .defaultSize(width: 1200, height: 820)
         .commands {
@@ -79,7 +112,16 @@ struct StudioView: View {
                     }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 Divider()
-                HStack { Image(systemName: "info.circle"); Text(model.message).lineLimit(2); Spacer(); Text("Ditoo-Plus · 16 × 16").foregroundStyle(.secondary) }
+                HStack {
+                    Image(systemName: "info.circle")
+                    Text(model.message).lineLimit(2)
+                    Spacer()
+                    if model.dashboard.isCasting {
+                        Label("Painel em transmissão", systemImage: "dot.radiowaves.left.and.right")
+                        Button("Parar painel", action: model.dashboard.stop)
+                    }
+                    Text("Ditoo-Plus · 16 × 16").foregroundStyle(.secondary)
+                }
                     .font(.caption).padding(.horizontal, 20).padding(.vertical, 10)
             }.background(Color(nsColor: .windowBackgroundColor))
         }
@@ -134,6 +176,18 @@ struct DeviceView: View {
                         if controller.isConnected { Button("Desconectar", action: controller.disconnect) }
                         else { Button("Conectar", action: controller.connect).buttonStyle(.borderedProminent).disabled(controller.selectedAddress.isEmpty || controller.isBusy) }
                     }
+                }
+                StudioCard(title: "Conexão automática", symbol: "arrow.triangle.2.circlepath") {
+                    Toggle("Reconectar automaticamente", isOn: $controller.automaticConnectionEnabled)
+                    if let name = controller.rememberedDeviceName {
+                        LabeledContent("Aparelho salvo", value: name)
+                        Button("Esquecer aparelho", role: .destructive, action: controller.forgetDevice)
+                    } else {
+                        Text("Conecte ao Ditoo uma vez para salvá-lo. Depois, o Mac tentará reconectar ao abrir, despertar ou perder a conexão.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                    Text("Reconectar não envia imagens nem altera o relógio ou os alarmes. Desconectar desativa a reconexão automática.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 StudioCard(title: "Estado do aparelho", symbol: "hifispeaker") {
                     LabeledContent("Transporte", value: "Bluetooth Classic · RFCOMM")
@@ -245,8 +299,6 @@ struct ClockPreview: View {
 
 struct AlarmsView: View {
     @Bindable var model: AppModel
-    @State private var weekdays: UInt8 = 0x7F
-    @State private var volume = 50.0
     let days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
     var body: some View {
         ScrollView {
@@ -259,23 +311,16 @@ struct AlarmsView: View {
                     Text("Repetir nos dias").font(.subheadline.weight(.medium))
                     HStack {
                         ForEach(0..<7) { index in
-                            Toggle(days[index], isOn: Binding(get: { weekdays & (1 << index) != 0 }, set: { value in
-                                if value { weekdays |= (1 << index) } else { weekdays &= ~(1 << index) }
+                            Toggle(days[index], isOn: Binding(get: { model.alarmWeekdays & (1 << index) != 0 }, set: { value in
+                                if value { model.alarmWeekdays |= (1 << index) } else { model.alarmWeekdays &= ~(1 << index) }
                             })).toggleStyle(.button)
                         }
                     }
-                    HStack { Text("Volume"); Slider(value: $volume, in: 0...100, step: 1); Text("\(Int(volume))%").monospacedDigit() }
+                    HStack { Text("Volume"); Slider(value: $model.alarmVolume, in: 0...100, step: 1); Text("\(Int(model.alarmVolume))%").monospacedDigit() }
+                    Text(model.hasConfiguredAlarm ? "Configuração encaminhada pelo app; confirme o alarme no Ditoo." : "Rascunho local. Envie a configuração para programar o Ditoo.")
+                        .font(.caption).foregroundStyle(.secondary)
                     Text("Sem dias selecionados: alarme sem repetição semanal. O som usado é o padrão do aparelho.").font(.caption).foregroundStyle(.secondary)
-                    Button("Enviar configuração do alarme") {
-                        let components = Calendar.current.dateComponents([.hour, .minute], from: model.alarmTime)
-                        do {
-                            let payload = try DivoomProtocol.alarm(slot: 0, enabled: model.alarmEnabled, hour: components.hour ?? 0, minute: components.minute ?? 0, weekdays: weekdays, volume: Int(volume))
-                            model.hasConfiguredAlarm = true
-                            UserDefaults.standard.set(model.alarmTime, forKey: "alarm.configuredTime")
-                            model.bluetooth.send([payload], label: "Alarme 0")
-                            model.message = "Configuração enviada ao transporte; confirme o alarme no aparelho."
-                        } catch { model.message = error.localizedDescription }
-                    }.buttonStyle(.borderedProminent).disabled(!model.canSend)
+                    Button("Enviar configuração do alarme", action: model.applyAlarm).buttonStyle(.borderedProminent).disabled(!model.canSend)
                 }
                 StudioCard(title: "Validação", symbol: "checklist") {
                     Text("O protocolo do alarme foi identificado em implementações de referência. O agendamento e o disparo ainda precisam ser conferidos neste Ditoo-Plus.")

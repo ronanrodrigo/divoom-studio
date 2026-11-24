@@ -45,3 +45,23 @@ Isso valida conexão, escrita assíncrona, parser de resposta e envio visual de 
 Xcode27, Swift6, Debug e concorrência completa: 13 testes, zero falhas. Vetores de protocolo, checksum/reassembly, paletas1/2/256cores, limites de animação, alarmes/relógio; PNGRGB/orientação, recorte central, EXIF6, GIF timing e JSON inválido.
 
 Separadamente, o codec foi comparado byte a byte com os métodos reais do hass-divoom para paletas1,2,3,5,16,256cores; correspondência integral.
+
+## iPhone — investigação de descoberta, builds 4 e 5
+
+O usuário confirmou que o app oficial conecta, mas o Ditoo não aparece na busca do Divoom Studio. Corrigida a consulta de periféricos já conectados ao iOS e o filtro por serviço anunciado/nome. Build 4 instalado no iPhone; o teste físico de busca em modo diagnóstico não encontrou candidatos e não iniciou conexão nem enviou comandos. Os anexos revelaram que o toque em Buscar também executava Parar busca: os dois botões usavam o estilo automático na mesma linha de List. O registro chegou a recuperar um Ditoo conectado ao iOS quando ambas as ações foram chamadas novamente. Build 5 aplica estilo borderless para separar as ações e está instalado. A repetição do teste foi interrompida pelo seletor de apps/aviso de notificações do app oficial; o teste foi ajustado para exigir primeiro plano, mas o iPhone bloqueou antes da nova execução. O processo de teste foi encerrado para não retomar sem acompanhamento. Não há confirmação de conexão GATT ou envio BLE neste ponto.
+
+Separadamente, passaram 39 testes unitários iOS, 3 testes de interface no simulador e 25 testes macOS. O build Release macOS e a verificação de assinatura ad-hoc passaram. Testes opt-in de hardware ficam fora do resultado automatizado padrão.
+
+## iPhone — conexão confirmada pelo usuário
+
+Após instalar o build 5, o usuário confirmou: “deu certo”. Isso valida a busca/conexão pelo app no aparelho físico. A confirmação não inclui envio BLE de imagem, programação de alarmes, reconexão automática ou execução em segundo plano. A reconexão automática é uma alteração posterior e requer validação própria.
+
+## iPhone — reconexão automática, build 6
+
+Build 6 assinado e instalado no iPhone. A versão implementa persistência do alvo/protocolo, conexão pendente no CoreBluetooth, restauração e espera progressiva após erros. Passaram 45 testes de lógica e 3 testes de interface no simulador; três testes opt-in de hardware/diagnóstico foram ignorados na suíte padrão. A revisão visual confirmou a opção de reconexão acessível e sem texto cortado. Passaram também os 25 testes macOS e o build Release com assinatura ad-hoc verificada.
+
+O teste físico preparado conecta em diagnóstico, reinicia o app e espera nova conexão sem tocar em Buscar/Conectar, sem enviar comandos de controle. Nesta sessão ele não iniciou porque o iPhone permaneceu bloqueado; o processo foi encerrado para não retomar sem acompanhamento. Reconexão física, retorno ao alcance, restauração após suspensão/remoção de memória e comportamento em segundo plano permanecem sem confirmação. A primeira conexão no build 6 precisa salvar o alvo, pois o build 5 não persistia essa informação.
+
+## macOS — atualização de paridade 0.3.0
+
+44 testes automatizados e build Release universal passaram, com assinatura ad-hoc verificada. Instalação local atualizada e interface inspecionada sem conectar ao Ditoo nem enviar comandos. Reconexão automática, cache meteorológico e persistência de alarme foram verificados por testes de estado/persistência e revisão; a reconexão física após queda/suspensão não foi exercitada nesta etapa. A validação física Classic e de imagem estática anterior continua separada destes resultados.

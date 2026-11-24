@@ -17,6 +17,7 @@ final class DashboardModel {
     var pageInterval = 4.0
     private(set) var castingStatus = "O painel ainda não está sendo enviado ao Ditoo."
     @ObservationIgnored private let service = WeatherService()
+    @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var weatherTask: Task<Void, Never>?
     @ObservationIgnored private var castTask: Task<Void, Never>?
@@ -24,11 +25,19 @@ final class DashboardModel {
     @ObservationIgnored private var weatherGeneration = UUID()
     @ObservationIgnored private var lastWeatherAttempt: Date?
 
-    init() {
-        if let data = UserDefaults.standard.data(forKey: "dashboard.weatherLocation"),
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        if let data = defaults.data(forKey: "dashboard.weatherLocation"),
            let saved = try? JSONDecoder().decode(WeatherLocation.self, from: data) {
             location = saved
             cityQuery = saved.name
+        }
+        if let data = defaults.data(forKey: "dashboard.weatherSnapshot"),
+           let saved = try? JSONDecoder().decode(DashboardWeatherCache.self, from: data),
+           saved.location.id == location?.id {
+            weather = saved.snapshot
+            lastWeatherAttempt = saved.fetchedAt
+            weatherStatus = "Último clima salvo. Atualize quando houver internet."
         }
     }
 
@@ -72,7 +81,8 @@ final class DashboardModel {
         weather = nil
         locations = []
         cityQuery = selected.name
-        if let data = try? JSONEncoder().encode(selected) { UserDefaults.standard.set(data, forKey: "dashboard.weatherLocation") }
+        if let data = try? JSONEncoder().encode(selected) { defaults.set(data, forKey: "dashboard.weatherLocation") }
+        defaults.removeObject(forKey: "dashboard.weatherSnapshot")
         refreshWeather()
     }
 
@@ -98,6 +108,9 @@ final class DashboardModel {
                 let result = try await self.service.fetchCurrent(location: location)
                 guard !Task.isCancelled, self.weatherGeneration == generation, self.location?.id == location.id else { return }
                 self.weather = result
+                if let data = try? JSONEncoder().encode(DashboardWeatherCache(snapshot: result)) {
+                    self.defaults.set(data, forKey: "dashboard.weatherSnapshot")
+                }
                 self.weatherStatus = "Clima atualizado."
             } catch {
                 guard !Task.isCancelled, self.weatherGeneration == generation else { return }
@@ -119,21 +132,27 @@ final class DashboardModel {
         guard bluetooth.isConnected, !bluetooth.isBusy else { castingStatus = "Conecte o Ditoo e aguarde o envio atual."; return }
         isCasting = true
         castingStatus = "Alternando data, hora, alarme e clima no Ditoo."
+        let session = bluetooth.sessionIdentifier
         castTask = Task { [weak self, weak bluetooth] in
             var index = 0
             while !Task.isCancelled {
-                guard let delay = self?.castStep(bluetooth: bluetooth, index: &index, values: values) else { return }
+                guard let delay = self?.castStep(bluetooth: bluetooth, session: session, index: &index, values: values) else { return }
                 do { try await Task.sleep(for: .seconds(delay)) } catch { return }
             }
         }
     }
 
-    private func castStep(bluetooth: BluetoothController?, index: inout Int,
+    private func castStep(bluetooth: BluetoothController?, session: UUID, index: inout Int,
                           values: @MainActor () -> DashboardValues) -> Double? {
         guard isCasting else { return nil }
         guard let bluetooth, bluetooth.isConnected else {
             isCasting = false
             castingStatus = "Transmissão interrompida: Ditoo desconectado."
+            return nil
+        }
+        guard bluetooth.sessionIdentifier == session else {
+            isCasting = false
+            castingStatus = "A conexão mudou. Inicie a transmissão novamente quando quiser."
             return nil
         }
         guard !bluetooth.isBusy else { return 0.2 }
@@ -156,5 +175,27 @@ final class DashboardModel {
         castTask = nil
         isCasting = false
         castingStatus = "Transmissão pausada; o Ditoo mantém a última imagem enviada."
+    }
+}
+
+/// Stored separately from the selected city so a stale/mismatched cache never changes selection.
+private struct DashboardWeatherCache: Codable {
+    let temperature: Double
+    let code: Int
+    let fetchedAt: Date
+    let observationTime: Date?
+    let location: WeatherLocation
+
+    init(snapshot: WeatherSnapshot) {
+        temperature = snapshot.temperature
+        code = snapshot.code
+        fetchedAt = snapshot.fetchedAt
+        observationTime = snapshot.observationTime
+        location = snapshot.location
+    }
+
+    var snapshot: WeatherSnapshot {
+        WeatherSnapshot(temperature: temperature, code: code, fetchedAt: fetchedAt,
+                        observationTime: observationTime, location: location)
     }
 }

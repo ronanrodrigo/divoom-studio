@@ -70,7 +70,7 @@ struct EditorTools: View {
             Text("Ferramentas").font(.headline)
             ColorPicker("Cor", selection: $model.drawingColor, supportsOpacity: false)
             Toggle("Borracha", isOn: $model.erasing)
-            Button("Limpar quadro", action: model.clearFrame)
+            Button("Limpar quadro", action: model.clearFrame).disabled(model.isPlaying)
             Divider()
             Text("Editar com o teclado").font(.subheadline.weight(.medium))
             Stepper("Coluna: \(x + 1)", value: $x, in: 0...15)
@@ -78,7 +78,7 @@ struct EditorTools: View {
             Button("Pintar pixel", action: { model.paint(x: x, y: y) })
             Divider()
             Button("Enviar quadro", action: model.sendFrame).buttonStyle(.borderedProminent).disabled(!model.canSend)
-            Button("Enviar animação", action: model.sendAnimation).disabled(!model.canSend)
+            Button("Enviar animação", action: model.sendAnimation).disabled(!model.canSend || model.project.frames.count < 2)
             Button("Guardar na biblioteca", action: model.addToLibrary)
         }.frame(minWidth: 220, maxWidth: 330, alignment: .leading)
     }

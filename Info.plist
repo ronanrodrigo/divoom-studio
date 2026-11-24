@@ -8,8 +8,8 @@
 <key>CFBundleName</key><string>Divoom Studio</string>
 <key>CFBundleDisplayName</key><string>Divoom Studio</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.0</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>0.3.0</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>LSMinimumSystemVersion</key><string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 <key>NSBluetoothAlwaysUsageDescription</key><string>O Divoom Studio conecta ao Ditoo por Bluetooth para enviar pixel art e configurar a tela.</string>
 <key>NSBluetoothPeripheralUsageDescription</key><string>O Divoom Studio usa Bluetooth para controlar seu Ditoo.</string>

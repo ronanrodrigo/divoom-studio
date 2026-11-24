@@ -1,5 +1,9 @@
 import XCTest
+#if os(iOS)
+@testable import DivoomStudioMobile
+#else
 @testable import DivoomStudio
+#endif
 
 final class DivoomProtocolTests: XCTestCase {
     func testGoldenFramingAndChecksum() throws {

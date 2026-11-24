@@ -1,4 +1,5 @@
-import AppKit
+import Foundation
+import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -12,6 +13,20 @@ struct PixelProject: Codable, Equatable, Sendable {
     var name = "Sem título"
     var durationMilliseconds = 200
     var frames = [PixelFrame()]
+
+    static func load(from url: URL) throws -> Self {
+        let limit = 2_000_000
+        let info = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+        guard info.isRegularFile == true, let size = info.fileSize, size <= limit else {
+            throw CocoaError(.fileReadTooLarge)
+        }
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        // Bound the read itself as well as metadata: the file can grow after stat.
+        let data = try handle.read(upToCount: limit + 1) ?? Data()
+        guard data.count <= limit else { throw CocoaError(.fileReadTooLarge) }
+        return try JSONDecoder().decode(Self.self, from: data).validated()
+    }
 
     func validated() throws -> Self {
         guard formatVersion == 1, !frames.isEmpty, frames.count <= 60,

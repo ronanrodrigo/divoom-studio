@@ -26,3 +26,11 @@ DivoomProtocol.swift is an independent Swift implementation informed by the foll
 
 - Source: https://github.com/alvinunreal/divoom-minitoo-osx
 - Existing workspace clone used as a transport reference and negative comparison for the incompatible LCD/Zstandard payload. The Swift palette codec does not use its media encoder.
+
+## divoom-ble-web
+
+- Fonte: https://github.com/alikendir0/divoom-ble-web
+- Revisão examinada:03b2d4096a7650e9ccfd2e560d0e5df5f9f23085.
+- Implementação interoperável testada pelo autor no DitooPlus, sob licençaMIT.
+- Usada para perfilISSCUART, envelopeRCSP, ACKpor pacote, quadros monocromáticos e anúncio/solicitação/blocos da animaçãoBLE. A implementação Swift e seus testes mantêm o transporte separado do codecRFCOMMdo Mac.
+- Licença preservada em LICENSE-divoom-ble-web.txt.

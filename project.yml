@@ -27,6 +27,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+        excludes:
+          - iOS
       - path: Resources/AppIcon.icns
         buildPhase: resources
     settings:
@@ -47,6 +49,9 @@ targets:
     platform: macOS
     sources:
       - path: Tests
+        excludes:
+          - iOS
+          - iOSUITests
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.ronanrodrigo.DivoomStudioTests
@@ -55,6 +60,65 @@ targets:
         BUNDLE_LOADER: '$(TEST_HOST)'
     dependencies:
       - target: DivoomStudio
+  DivoomStudioMobile:
+    type: application
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+      - path: Sources/iOS
+      - path: Sources/Protocol
+      - path: Sources/Dashboard/DashboardRenderer.swift
+      - path: Sources/Dashboard/WeatherService.swift
+      - path: Sources/Editor/PixelProject.swift
+      - path: Resources/MobileAssets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.ronanrodrigo.DivoomStudioMobile
+        PRODUCT_NAME: Divoom Studio
+        PRODUCT_MODULE_NAME: DivoomStudioMobile
+        INFOPLIST_FILE: Mobile-Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: '1,2'
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: 'Apple Development'
+        ENABLE_HARDENED_RUNTIME: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - sdk: CoreBluetooth.framework
+      - sdk: ImageIO.framework
+      - sdk: UniformTypeIdentifiers.framework
+  DivoomStudioMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+      - path: Tests/iOSUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.ronanrodrigo.DivoomStudioMobileUITests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: 'Apple Development'
+    dependencies:
+      - target: DivoomStudioMobile
+  DivoomStudioMobileTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+      - path: Tests
+        excludes:
+          - iOSUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.ronanrodrigo.DivoomStudioMobileTests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: 'Apple Development'
+        TEST_HOST: '$(BUILT_PRODUCTS_DIR)/Divoom Studio.app/Divoom Studio'
+        BUNDLE_LOADER: '$(TEST_HOST)'
+    dependencies:
+      - target: DivoomStudioMobile
 schemes:
   DivoomStudio:
     build:
@@ -64,5 +128,17 @@ schemes:
     test:
       targets:
         - DivoomStudioTests
+    run:
+      config: Debug
+  DivoomStudioMobile:
+    build:
+      targets:
+        DivoomStudioMobile: all
+        DivoomStudioMobileTests: [test]
+        DivoomStudioMobileUITests: [test]
+    test:
+      targets:
+        - DivoomStudioMobileTests
+        - DivoomStudioMobileUITests
     run:
       config: Debug
