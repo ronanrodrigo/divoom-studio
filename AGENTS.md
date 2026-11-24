@@ -23,6 +23,19 @@ Limites dos módulos:
 - `Sources/iOS`: apresentação e transporte CoreBluetooth do companion. Não importe IOBluetooth/AppKit para o target iOS.
 - `Tests`: vetores, mídia, painel, clima e persistência. Testes exclusivos do Mac devem usar `#if os(macOS)` ou exclusão no XcodeGen, pois o target iOS também inclui testes compartilhados.
 
+## Engenharia reversa e artefatos de pesquisa
+
+Antes de investigar ou alterar o protocolo, consulte `docs/IOS-COMPATIBILITY.md`, `docs/PARITY.md`, `docs/THIRD_PARTY.md` e `docs/HARDWARE-VALIDATION.md`. Esses documentos estão versionados e distinguem fontes, implementação e validação física.
+
+Os artefatos originais estão fora do repositório, neste Mac:
+
+- Base de entregáveis: `/Users/ronan/Documents/Codex/2026-11-23/cone/outputs/divoom/`.
+- Nessa base: `research-ipa.md` (investigação do app), `research-protocol.md` (protocolo), `research-xcode.md` (ambiente), `metadata.json` e `Divoom.ipa`.
+- Saídas brutas REA: `/Users/ronan/Documents/Codex/2026-11-23/cone/work/ipa-investigation/`, incluindo `rea-artifact-summary.json`, `rea-artifact-evidence.json`, `rea-doctor.json`, `artifact-evidence.json`, `english-features.json` e `strings.txt`.
+- Pesquisa posterior local: `work/offline-protocol-research.md`, `work/firmware-ipa/` e `work/ios-compat-divoom-ble-web/`. `work/` é temporário e não deve ser a única fonte de uma decisão durável.
+
+Esses caminhos são locais e podem não existir em outro checkout; não confunda sua ausência com ausência de evidência. O IPA analisado tem FairPlay `cryptid=1`: os recursos/metadados foram inspecionados, mas não houve recuperação completa do código cifrado. O protocolo também se fundamenta em implementações públicas identificadas nos documentos acima. Não versione o IPA, extrações, logs privados ou dumps sem revisão; registre conclusões sanitizadas em `docs/`.
+
 ## Bluetooth e reconexão
 
 O Mac usa Bluetooth Classic/RFCOMM; o iPhone usa GATT/BLE com envelope RCSP próprio. Não envie frames RFCOMM diretamente a uma characteristic BLE nem porte o envelope BLE para o canal Classic.
