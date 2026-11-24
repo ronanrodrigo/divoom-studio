@@ -63,3 +63,16 @@ O painel do Ditoo depende do Divoom Studio aberto e conectado para avançar as t
 Versão iPhone instalada e aberta em aparelho físico com assinaturaAppleDevelopment usandoXcode27.2. Passaram36testesde código e3de interface;1testeBluetooth físico opt-in foi ignorado na suíte automática. RegressãoMac:25testes ebuildRelease/assinaturaad-hoc passaram. Confirmação físicaBLEcom o Ditoo permanece solicitada ao usuário.
 
 - [ ] I7 — Confirmar com o usuário conexão BLE e resultado visual da imagem enviada pelo iPhone.
+
+## Retomada do macOS — paridade com o companion
+
+- [x] Comparar as funcionalidades e preservar os recursos adicionais do Mac.
+- [x] Reconexão automática ao último endereço/canal validado, esquecer e suspensão/retomada.
+- [x] Snapshot de clima persistente com validação de cidade e frescor.
+- [x] Dias/volume de alarme persistidos; rascunho distinto de configuração encaminhada.
+- [x] Envio de uma página, intervalo 2–30 segundos e painel entre seções com parada global.
+- [x] Impedir continuação do painel em outra sessão Bluetooth após reconectar.
+- [x] 44 testes macOS e build universal Release com assinatura ad-hoc verificada.
+- [x] Atualizar instalação local e verificar interface final.
+
+Detalhes e limites: MACOS-PARITY.md. Nenhuma evolução iOS ou publicação de release integra esta retomada.

@@ -21,7 +21,6 @@ struct DashboardView: View {
                 do { try await Task.sleep(for: .seconds(60)) } catch { return }
             }
         }
-        .onDisappear { model.dashboard.stop() }
     }
 }
 
@@ -120,28 +119,31 @@ struct DashboardDevicePanel: View {
             Picker("Prévia", selection: $dashboard.selectedPage) {
                 ForEach(DashboardPage.allCases) { page in Text(page.title).tag(page) }
             }.disabled(model.dashboard.isCasting)
-            Stepper("Cada tela: \(Int(model.dashboard.pageInterval)) segundos", value: $dashboard.pageInterval, in: 3...15, step: 1)
-            HStack {
-                if model.dashboard.isCasting {
-                    Button("Parar painel", systemImage: "stop.fill", action: model.dashboard.stop)
-                } else {
-                    Button("Exibir no Ditoo", systemImage: "play.fill") {
-                        model.dashboard.start(bluetooth: model.bluetooth) { [weak model] in
-                            guard let model else {
-                                return DashboardValues(date: Date(), timeZone: .current, twentyFourHour: true,
-                                                       alarmEnabled: false, alarmHour: 0, alarmMinute: 0, temperature: nil, weatherCode: nil, alarmConfigured: false)
+            Stepper("Cada tela: \(Int(model.dashboard.pageInterval)) segundos", value: $dashboard.pageInterval, in: 2...30, step: 1)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    if model.dashboard.isCasting {
+                        Button("Parar painel", systemImage: "stop.fill", action: model.dashboard.stop)
+                    } else {
+                        Button("Exibir no Ditoo", systemImage: "play.fill") {
+                            model.dashboard.start(bluetooth: model.bluetooth) { [weak model] in
+                                guard let model else {
+                                    return DashboardValues(date: Date(), timeZone: .current, twentyFourHour: true,
+                                                           alarmEnabled: false, alarmHour: 0, alarmMinute: 0, temperature: nil, weatherCode: nil, alarmConfigured: false)
+                                }
+                                return model.dashboard.values(date: Date(), alarmEnabled: model.alarmEnabled,
+                                                              alarmTime: model.alarmTime, twentyFourHour: model.twentyFourHour, alarmConfigured: model.hasConfiguredAlarm)
                             }
-                            return model.dashboard.values(date: Date(), alarmEnabled: model.alarmEnabled,
-                                                          alarmTime: model.alarmTime, twentyFourHour: model.twentyFourHour, alarmConfigured: model.hasConfiguredAlarm)
-                        }
-                    }.buttonStyle(.borderedProminent).disabled(!model.canSend)
+                        }.buttonStyle(.borderedProminent).disabled(!model.canSend)
+                    }
+                    if !model.bluetooth.isConnected {
+                        Button("Conectar", action: model.bluetooth.connect).disabled(model.bluetooth.isBusy)
+                    }
                 }
-                if !model.bluetooth.isConnected {
-                    Button("Conectar", action: model.bluetooth.connect).disabled(model.bluetooth.isBusy)
-                }
+                Button("Enviar apenas esta página", action: model.sendDashboardPage).disabled(!model.canSend)
             }
             Text(model.dashboard.castingStatus).font(.caption).foregroundStyle(.secondary)
-            Text("As quatro informações alternam na tela de 16 × 16 pixels. Mantenha este painel aberto no Mac para atualizar a hora e o clima.")
+            Text("As quatro informações alternam na tela de 16 × 16 pixels. Mantenha o Divoom Studio aberto e o Mac acordado para atualizar a hora e o clima. Você pode navegar pelas outras seções.")
                 .font(.caption).foregroundStyle(.secondary)
         }.frame(minWidth: 310, maxWidth: .infinity)
     }

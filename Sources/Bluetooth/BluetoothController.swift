@@ -28,20 +28,50 @@ struct BluetoothLogEntry: Identifiable, Equatable, Sendable {
     let message: String
 }
 
-/// Owns exactly one user-initiated Classic Bluetooth connection.
+/// Owns one Classic Bluetooth connection, optionally reconnecting a remembered successful target.
 /// A successful write or ACK never establishes what appeared on the display.
 @MainActor
 @Observable
-final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
+final class BluetoothController: NSObject {
     private(set) var devices: [PairedDivoomDevice] = []
-    var selectedAddress: String = UserDefaults.standard.string(forKey: "divoom.address") ?? ""
+    var selectedAddress = ""
     var channel: UInt8 = 1
     private(set) var isConnected = false
     private(set) var isBusy = false
     private(set) var status = "Desconectado"
     private(set) var logs: [BluetoothLogEntry] = []
     private(set) var lastAcknowledgedCommand: UInt8?
+    var sessionIdentifier: UUID { generation }
 
+    var automaticConnectionEnabled = true {
+        didSet {
+            persistAutomaticPreferences()
+            if automaticConnectionEnabled {
+                backoff.reset()
+                startAutomaticConnection()
+            } else {
+                automaticWanted = false
+                cancelRetry()
+                if connectionOrigin == .automatic && !isConnected {
+                    cleanupConnection()
+                    status = "Reconexão automática desativada"
+                }
+            }
+        }
+    }
+    private(set) var rememberedDevice: RememberedRFCOMMDevice?
+    var rememberedDeviceName: String? { rememberedDevice?.name }
+
+    private enum ConnectionOrigin { case manual, automatic }
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private var automaticWanted = false
+    @ObservationIgnored private var isSuspended = false
+    @ObservationIgnored private var retryTask: Task<Void, Never>?
+    @ObservationIgnored private var retryEpoch = UUID()
+    @ObservationIgnored private var backoff = RFCOMMReconnectBackoff()
+    @ObservationIgnored private var connectionOrigin: ConnectionOrigin?
+    @ObservationIgnored private var attemptTarget: RememberedRFCOMMDevice?
+    @ObservationIgnored private var channelDelegate: EpochRFCOMMDelegate?
     @ObservationIgnored private var device: IOBluetoothDevice?
     @ObservationIgnored private var rfcomm: IOBluetoothRFCOMMChannel?
     @ObservationIgnored private var connectTask: Task<Void, Never>?
@@ -53,13 +83,19 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
     @ObservationIgnored private var parser = DivoomFrameParser()
     @ObservationIgnored private var acknowledgedCommands: Set<UInt8> = []
 
-    override init() {
+    init(defaults: UserDefaults = .standard, loadPairedDevices: Bool = true) {
+        self.defaults = defaults
+        let preferences = RFCOMMConnectionPreferences.load(from: defaults)
+        automaticConnectionEnabled = preferences.enabled
+        rememberedDevice = preferences.device
+        selectedAddress = defaults.string(forKey: "divoom.address") ?? ""
         super.init()
-        // Reading paired devices does not initiate discovery, connection or transmission.
-        refreshDevices()
+        // Constructing the model never opens a connection. Tests can skip even the paired-device read.
+        if loadPairedDevices { refreshDevices() }
     }
 
     isolated deinit {
+        retryTask?.cancel()
         connectTask?.cancel()
         sendTask?.cancel()
         writeTask?.cancel()
@@ -85,6 +121,77 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
         }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
+    /// Authorized lifecycle entry point; only the last successfully opened RFCOMM target qualifies.
+    /// Reconnection never resends time, image, brightness, alarm or other application payloads.
+    func startAutomaticConnection() {
+        isSuspended = false
+        guard automaticConnectionEnabled, rememberedDevice != nil else { return }
+        if isBusy && connectionOrigin == .manual { return }
+        automaticWanted = true
+        guard !isConnected, !isBusy, retryTask == nil else { return }
+        attemptAutomaticConnection()
+    }
+
+    func prepareForSleep() {
+        isSuspended = true
+        automaticWanted = false
+        cancelRetry()
+        cleanupConnection()
+        status = "Conexão pausada enquanto o Mac dorme"
+    }
+
+    func forgetDevice() {
+        automaticConnectionEnabled = false
+        automaticWanted = false
+        cancelRetry()
+        rememberedDevice = nil
+        persistAutomaticPreferences()
+        cleanupConnection()
+        selectedAddress = ""
+        defaults.removeObject(forKey: "divoom.address")
+        status = "Aparelho esquecido. Selecione e conecte novamente para salvá-lo."
+    }
+
+    private func persistAutomaticPreferences() {
+        RFCOMMConnectionPreferences(enabled: automaticConnectionEnabled, device: rememberedDevice).save(to: defaults)
+    }
+
+    private func cancelRetry() {
+        retryEpoch = UUID()
+        retryTask?.cancel()
+        retryTask = nil
+    }
+
+    private func attemptAutomaticConnection() {
+        guard automaticWanted, automaticConnectionEnabled, !isSuspended, !isConnected,
+              !isBusy, let target = rememberedDevice?.validated else { return }
+        guard let host = IOBluetoothHostController.default(), host.powerState == kBluetoothHCIPowerStateON else {
+            status = "Aguardando o Bluetooth do Mac ficar disponível"
+            scheduleRetry()
+            return
+        }
+        guard let candidate = IOBluetoothDevice(addressString: target.address), candidate.isPaired() else {
+            status = "O aparelho salvo precisa estar emparelhado com este Mac"
+            scheduleRetry()
+            return
+        }
+        openConnection(to: candidate, target: target, origin: .automatic)
+    }
+
+    private func scheduleRetry() {
+        guard automaticWanted, automaticConnectionEnabled, !isSuspended, !isConnected,
+              !isBusy, rememberedDevice?.validated != nil, retryTask == nil else { return }
+        let delay = backoff.nextDelay()
+        let epoch = retryEpoch
+        appendLog("AUTO", "Nova tentativa de conexão em \(Int(delay)) s; nenhum comando será repetido.")
+        retryTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+            guard let self, self.retryEpoch == epoch, !Task.isCancelled else { return }
+            self.retryTask = nil
+            self.attemptAutomaticConnection()
+        }
+    }
+
     func connect() {
         guard !isBusy, !isConnected else { return }
         guard let address = Self.normalizedAddress(selectedAddress), (1...30).contains(channel) else {
@@ -92,26 +199,46 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
             appendLog("ERRO", status)
             return
         }
-        disconnect()
+        isSuspended = false
+        cancelRetry()
+        // A failed new selection is never promoted to an automatic target.
+        automaticWanted = automaticConnectionEnabled && rememberedDevice?.address == address && rememberedDevice?.channel == channel
         selectedAddress = address
-        UserDefaults.standard.set(address, forKey: "divoom.address")
+        defaults.set(address, forKey: "divoom.address") // selection only; not proof of a successful connection
         guard let target = IOBluetoothDevice(addressString: address) else {
             status = "Não foi possível localizar o aparelho"
             appendLog("ERRO", status)
+            scheduleRetry()
             return
         }
-        device = target
+        let configuration = RememberedRFCOMMDevice(address: address, name: target.name ?? "Ditoo", channel: channel)
+        openConnection(to: target, target: configuration, origin: .manual)
+    }
+
+    private func openConnection(to targetDevice: IOBluetoothDevice, target: RememberedRFCOMMDevice, origin: ConnectionOrigin) {
+        // Internal cleanup must not invoke the user's Disconnect opt-out.
+        cleanupConnection()
+        device = targetDevice
+        attemptTarget = target
+        selectedAddress = target.address
+        channel = target.channel
+        connectionOrigin = origin
         isBusy = true
-        status = "Conectando…"
-        appendLog("INFO", "Abrindo RFCOMM \(address), canal \(channel)")
+        status = origin == .automatic ? "Reconectando ao aparelho salvo…" : "Conectando…"
+        appendLog(origin == .automatic ? "AUTO" : "INFO", "Abrindo RFCOMM, canal \(target.channel); sem comandos automáticos")
         let attempt = generation
+        let proxy = EpochRFCOMMDelegate(epoch: attempt) { [weak self] epoch, event in
+            Task { @MainActor [weak self] in self?.receiveChannelEvent(event, epoch: epoch) }
+        }
+        channelDelegate = proxy
         var opened: IOBluetoothRFCOMMChannel?
-        let result = target.openRFCOMMChannelAsync(&opened, withChannelID: channel, delegate: self)
+        let result = targetDevice.openRFCOMMChannelAsync(&opened, withChannelID: target.channel, delegate: proxy)
         rfcomm = opened
         guard result == kIOReturnSuccess, opened != nil else {
             status = "Falha ao abrir RFCOMM: \(Self.errorCode(result)). Se o áudio estiver em uso, desconecte-o nos ajustes Bluetooth."
             appendLog("ERRO", status)
             cleanupConnection()
+            scheduleRetry()
             return
         }
         connectTask = Task { [weak self] in
@@ -120,12 +247,16 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
             self.status = "Conexão expirou após 15 segundos"
             self.appendLog("ERRO", self.status)
             self.cleanupConnection()
+            self.scheduleRetry()
         }
     }
 
     func disconnect() {
+        automaticConnectionEnabled = false
+        automaticWanted = false
+        cancelRetry()
         cleanupConnection()
-        status = "Desconectado"
+        status = "Desconectado; reconexão automática desativada"
     }
 
     func send(_ payloads: [Data], label: String) {
@@ -164,6 +295,7 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
                     self.status = "Envio interrompido: canal fechado"
                     self.appendLog("ERRO", self.status)
                     self.cleanupConnection()
+                    self.scheduleRetry()
                     return
                 }
                 let mtu = max(1, min(200, Int(current.getMTU())))
@@ -174,12 +306,14 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
                         self.status = "Envio interrompido: canal fechado"
                         self.appendLog("ERRO", self.status)
                         self.cleanupConnection()
+                        self.scheduleRetry()
                         return
                     }
                     guard ContinuousClock.now < deadline else {
                         self.status = "Envio expirou após 60 segundos; sem nova tentativa"
                         self.appendLog("ERRO", self.status)
                         self.cleanupConnection()
+                        self.scheduleRetry()
                         return
                     }
                     let count = min(mtu, frame.count - offset)
@@ -190,6 +324,7 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
                         self.status = "Falha no envio: \(Self.errorCode(result)); sem nova tentativa"
                         self.appendLog("ERRO", self.status)
                         self.cleanupConnection()
+                        self.scheduleRetry()
                         return
                     }
                     offset += count
@@ -236,7 +371,10 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
             _ = rfcomm.close()
         }
         rfcomm = nil
+        channelDelegate = nil
         device = nil
+        attemptTarget = nil
+        connectionOrigin = nil
         isConnected = false
         isBusy = false
         parser.reset()
@@ -265,6 +403,7 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
                 self.appendLog("ERRO", self.status)
                 // close() cancels channel activity; caller storage stays associated with it.
                 self.cleanupConnection()
+                self.scheduleRetry()
             }
         }
     }
@@ -299,69 +438,48 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
         }
     }
 
-    nonisolated func rfcommChannelWriteComplete(_ rfcommChannel: IOBluetoothRFCOMMChannel!, refcon: UnsafeMutableRawPointer!, status error: IOReturn) {
-        guard let rfcommChannel, let refcon else { return }
-        let identity = ObjectIdentifier(rfcommChannel)
-        let token = Int(bitPattern: refcon)
-        Task { @MainActor [weak self] in
-            self?.completeWrite(token: token, channelID: identity, result: error)
-        }
-    }
-
-    nonisolated func rfcommChannelWriteComplete(_ rfcommChannel: IOBluetoothRFCOMMChannel!, refcon: UnsafeMutableRawPointer!, status error: IOReturn, bytesWritten length: Int) {
-        guard let rfcommChannel, let refcon else { return }
-        let identity = ObjectIdentifier(rfcommChannel)
-        let token = Int(bitPattern: refcon)
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let result = error == kIOReturnSuccess && length != self.pendingWrite?.buffer.length ? kIOReturnUnderrun : error
-            self.completeWrite(token: token, channelID: identity, result: result)
-        }
-    }
-
-    nonisolated func rfcommChannelData(_ rfcommChannel: IOBluetoothRFCOMMChannel!, data dataPointer: UnsafeMutableRawPointer!, length dataLength: Int) {
-        guard let rfcommChannel, let dataPointer, dataLength > 0 else { return }
-        let data = Data(bytes: dataPointer, count: dataLength)
-        let identity = ObjectIdentifier(rfcommChannel)
-        Task { @MainActor [weak self] in self?.receive(data, from: identity) }
-    }
-
-    nonisolated func rfcommChannelOpenComplete(_ rfcommChannel: IOBluetoothRFCOMMChannel!, status error: IOReturn) {
-        guard let rfcommChannel else { return }
-        let identity = ObjectIdentifier(rfcommChannel)
-        Task { @MainActor [weak self] in
-            guard let self, let current = self.rfcomm, ObjectIdentifier(current) == identity else { return }
-            self.connectTask?.cancel()
-            self.connectTask = nil
-            guard error == kIOReturnSuccess else {
-                self.status = "Conexão falhou: \(Self.errorCode(error))"
-                self.appendLog("ERRO", self.status)
-                self.cleanupConnection()
+    private func receiveChannelEvent(_ event: RFCOMMChannelEvent, epoch: UUID) {
+        guard let current = rfcomm,
+              RFCOMMCallbackScope(epoch: epoch, channelID: event.channelID)
+                .isCurrent(epoch: generation, channelID: ObjectIdentifier(current)) else { return }
+        switch event {
+        case .opened(_, let error):
+            connectTask?.cancel()
+            connectTask = nil
+            guard error == kIOReturnSuccess, current.isOpen() else {
+                status = "Conexão falhou: \(Self.errorCode(error))"
+                appendLog("ERRO", status)
+                cleanupConnection()
+                scheduleRetry()
                 return
             }
-            self.isConnected = true
-            self.isBusy = false
-            self.status = "Conectado por Bluetooth; aguardando ação"
-            self.appendLog("INFO", self.status)
-        }
-    }
-
-    nonisolated func rfcommChannelClosed(_ rfcommChannel: IOBluetoothRFCOMMChannel!) {
-        guard let rfcommChannel else { return }
-        let identity = ObjectIdentifier(rfcommChannel)
-        Task { @MainActor [weak self] in
-            guard let self, let current = self.rfcomm, ObjectIdentifier(current) == identity else { return }
-            self.cleanupConnection()
-            self.status = "Conexão encerrada pelo aparelho"
-            self.appendLog("INFO", self.status)
+            isConnected = true
+            isBusy = false
+            if let target = attemptTarget?.validated {
+                rememberedDevice = target
+                persistAutomaticPreferences()
+                automaticWanted = automaticConnectionEnabled
+            }
+            backoff.reset()
+            cancelRetry()
+            status = "Conectado por Bluetooth; aguardando ação"
+            appendLog("INFO", status)
+        case .closed:
+            cleanupConnection()
+            status = "Conexão encerrada pelo aparelho"
+            appendLog("INFO", status)
+            scheduleRetry()
+        case .data(_, let data): receive(data, from: event.channelID)
+        case .write(_, let token, let status, let bytesWritten):
+            guard let pending = pendingWrite, pending.token == token, pending.channelID == event.channelID else { return }
+            let result = status == kIOReturnSuccess && bytesWritten != nil && bytesWritten != pending.buffer.length
+                ? kIOReturnUnderrun : status
+            completeWrite(token: token, channelID: event.channelID, result: result)
         }
     }
 
     private static func normalizedAddress(_ value: String) -> String? {
-        let compact = value.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "-", with: ":").uppercased()
-        let parts = compact.split(separator: ":", omittingEmptySubsequences: false)
-        guard parts.count == 6, parts.allSatisfy({ $0.count == 2 && UInt8($0, radix: 16) != nil }) else { return nil }
-        return compact
+        RFCOMMConnectionPreferences.normalizedAddress(value)
     }
 
     private static func hex(_ data: Data) -> String {
@@ -370,5 +488,49 @@ final class BluetoothController: NSObject, IOBluetoothRFCOMMChannelDelegate {
 
     private static func errorCode(_ error: IOReturn) -> String {
         String(format: "0x%08X", UInt32(bitPattern: error))
+    }
+}
+
+
+private enum RFCOMMChannelEvent: Sendable {
+    case opened(ObjectIdentifier, IOReturn)
+    case closed(ObjectIdentifier)
+    case data(ObjectIdentifier, Data)
+    case write(ObjectIdentifier, Int, IOReturn, Int?)
+    var channelID: ObjectIdentifier {
+        switch self {
+        case .opened(let id, _), .closed(let id), .data(let id, _), .write(let id, _, _, _): id
+        }
+    }
+}
+
+/// One immutable proxy per RFCOMM open. Callback pointers/buffers are copied before
+/// the MainActor hop, and an old epoch never mutates a newly opened channel.
+private final class EpochRFCOMMDelegate: NSObject, IOBluetoothRFCOMMChannelDelegate, @unchecked Sendable {
+    private let epoch: UUID
+    private let receive: @Sendable (UUID, RFCOMMChannelEvent) -> Void
+    init(epoch: UUID, receive: @escaping @Sendable (UUID, RFCOMMChannelEvent) -> Void) {
+        self.epoch = epoch
+        self.receive = receive
+    }
+    func rfcommChannelOpenComplete(_ channel: IOBluetoothRFCOMMChannel!, status error: IOReturn) {
+        guard let channel else { return }
+        receive(epoch, .opened(ObjectIdentifier(channel), error))
+    }
+    func rfcommChannelClosed(_ channel: IOBluetoothRFCOMMChannel!) {
+        guard let channel else { return }
+        receive(epoch, .closed(ObjectIdentifier(channel)))
+    }
+    func rfcommChannelData(_ channel: IOBluetoothRFCOMMChannel!, data pointer: UnsafeMutableRawPointer!, length: Int) {
+        guard let channel, let pointer, length > 0 else { return }
+        receive(epoch, .data(ObjectIdentifier(channel), Data(bytes: pointer, count: length)))
+    }
+    func rfcommChannelWriteComplete(_ channel: IOBluetoothRFCOMMChannel!, refcon: UnsafeMutableRawPointer!, status error: IOReturn) {
+        guard let channel, let refcon else { return }
+        receive(epoch, .write(ObjectIdentifier(channel), Int(bitPattern: refcon), error, nil))
+    }
+    func rfcommChannelWriteComplete(_ channel: IOBluetoothRFCOMMChannel!, refcon: UnsafeMutableRawPointer!, status error: IOReturn, bytesWritten: Int) {
+        guard let channel, let refcon else { return }
+        receive(epoch, .write(ObjectIdentifier(channel), Int(bitPattern: refcon), error, bytesWritten))
     }
 }
